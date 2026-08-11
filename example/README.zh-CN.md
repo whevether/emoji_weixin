@@ -4,6 +4,14 @@
 
 `emoji_weixin` 的演示聊天应用。
 
+## 演示视频
+
+本示例录屏（搜索 → 发送 → 右键收藏）：
+
+<video src="demo/emoji_weixin_demo.mp4" controls width="720"></video>
+
+- [`demo/emoji_weixin_demo.mp4`](demo/emoji_weixin_demo.mp4)
+
 ## 运行
 
 ```bash

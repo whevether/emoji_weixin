@@ -12,6 +12,14 @@
 4. **拍自己的表情**（iOS/Android：`wechat_camera_picker`；Web/桌面：`file_picker` `FileType.image` → `pro_image_editor`）  
 5. **导入表情包**（zip / 单文件，支持 PNG、JPG、WebP、GIF、Lottie）
 
+## 演示
+
+示例应用录屏（Klipy 搜索、发送、右键收藏）：
+
+<video src="example/demo/emoji_weixin_demo.mp4" controls width="720"></video>
+
+- [`example/demo/emoji_weixin_demo.mp4`](example/demo/emoji_weixin_demo.mp4)
+
 ## 平台支持
 
 | 能力 | iOS | Android | Web | macOS | Windows | Linux |

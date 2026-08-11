@@ -12,6 +12,14 @@ Features:
 4. **Capture & edit** — iOS/Android: `wechat_camera_picker`; Web/desktop: `file_picker` `FileType.image` → `pro_image_editor`  
 5. **Import packs** — zip or single files (PNG/JPG/WebP/GIF/Lottie)
 
+## Demo
+
+Example app screen recording (Klipy search, send, right-click to favorite):
+
+<video src="example/demo/emoji_weixin_demo.mp4" controls width="720"></video>
+
+- [`example/demo/emoji_weixin_demo.mp4`](example/demo/emoji_weixin_demo.mp4)
+
 ## Platform support
 
 | Feature | iOS | Android | Web | macOS | Windows | Linux |

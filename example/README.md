@@ -4,6 +4,14 @@
 
 Demo chat app for the `emoji_weixin` package.
 
+## Demo video
+
+Screen recording of this example (search → send → right-click favorite):
+
+<video src="demo/emoji_weixin_demo.mp4" controls width="720"></video>
+
+- [`demo/emoji_weixin_demo.mp4`](demo/emoji_weixin_demo.mp4)
+
 ## Run
 
 ```bash
