@@ -113,6 +113,8 @@ Aligned with [kinetic_player/example](https://github.com/wanwenfeng4798/kinetic_
 - Kotlin: **2.4.10**
 - Gradle: **9.6.1**
 - `file_picker`: **12.0.0-beta.7** (AGP 9 compatible)
+- Release signing: [`example/android/key.properties`](example/android/key.properties) + [`example/jks/emoji_weixin.jks`](example/jks/emoji_weixin.jks) (demo keystore; replace for production)
+- Release minify/shrink + [`proguard-rules.pro`](example/android/app/proguard-rules.pro)
 
 ## Platform permissions
 

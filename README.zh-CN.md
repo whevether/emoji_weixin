@@ -113,6 +113,8 @@ example 自带样例：`example/assets/sample_pack.zip`。
 - Kotlin：**2.4.10**
 - Gradle：**9.6.1**
 - `file_picker`：**12.0.0-beta.7**（兼容 AGP 9）
+- Release 签名：[`example/android/key.properties`](example/android/key.properties) + [`example/jks/emoji_weixin.jks`](example/jks/emoji_weixin.jks)（演示用证书，生产请自行替换）
+- Release 开启混淆压缩 + [`proguard-rules.pro`](example/android/app/proguard-rules.pro)
 
 ## 平台权限
 

@@ -13,4 +13,5 @@ All notable changes to this project are documented in this file.
 * Capture/edit on Web and desktop via `FileType.image`; WeChat camera on iOS/Android.
 * Giphy API key via `EmojiWeixinConfig` / `assets/config.json` (not `--dart-define`).
 * Example supports web/macOS/Windows/Linux; Android `compileSdk`/`targetSdk` 37 (AGP 9.3.1, Gradle 9.6.1).
+* Example Android release signing via `key.properties` + `example/jks/emoji_weixin.jks` (kinetic_player-style).
 * Docs: English default (`README.md`, `CHANGELOG.md`) plus Simplified Chinese (`README.zh-CN.md`, `CHANGELOG.zh-CN.md`).
