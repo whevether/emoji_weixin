@@ -12,11 +12,9 @@ rootProject.layout.buildDirectory.value(newBuildDir)
 
 subprojects {
     afterEvaluate {
-        if (plugins.hasPlugin("com.android.application") ||
-            plugins.hasPlugin("com.android.library")
-        ) {
-            extensions.configure<com.android.build.gradle.BaseExtension> {
-                compileSdkVersion(37)
+        if (plugins.hasPlugin("com.android.application") || plugins.hasPlugin("com.android.library")) {
+            extensions.configure<CommonExtension> {
+                compileSdk { version = release(37) }
                 buildToolsVersion = "37.0.0"
                 ndkVersion = "30.0.15729638"
                 if (namespace == null) {
@@ -26,6 +24,13 @@ subprojects {
         }
     }
     layout.buildDirectory.set(rootProject.layout.buildDirectory.dir(project.name))
+    dependencyLocking {
+        ignoredDependencies.add("io.flutter:*")
+        lockFile = file("${rootProject.projectDir}/project-${project.name}.lockfile")
+        if (!project.hasProperty("local-engine-repo")) {
+            lockAllConfigurations()
+        }
+    }
 }
 
 subprojects {
