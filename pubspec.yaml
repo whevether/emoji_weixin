@@ -1,0 +1,34 @@
+name: emoji_weixin
+description: WeChat-style emoji/sticker panel for Flutter with Giphy search, custom stickers, camera capture, and GIF/Lottie pack import.
+version: 0.1.0
+homepage: https://github.com/example/emoji_weixin
+
+environment:
+  sdk: ^3.12.2
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  archive: ^4.0.9
+  cached_network_image: ^3.4.1
+  file_picker: 12.0.0-beta.7
+  hive_ce: ^2.15.1
+  hive_ce_flutter: ^2.3.4
+  http: ^1.5.0
+  lottie: ^3.5.1
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  pro_image_editor: ^13.3.0
+  uuid: ^4.5.1
+  wechat_camera_picker: ^4.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  assets:
+    - assets/stickers/douyin/info.json
+    - assets/stickers/douyin/static/

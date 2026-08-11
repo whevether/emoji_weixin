@@ -1,0 +1,58 @@
+PODS:
+  - file_picker (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - FlutterMacOS (1.0.0)
+  - photo_manager (3.12.0):
+    - Flutter
+    - FlutterMacOS
+  - pro_image_editor (12.0.8):
+    - Flutter
+    - FlutterMacOS
+  - shared_preferences_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - sqflite_darwin (0.0.4):
+    - Flutter
+    - FlutterMacOS
+  - video_player_avfoundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+
+DEPENDENCIES:
+  - file_picker (from `Flutter/ephemeral/.symlinks/plugins/file_picker/darwin`)
+  - FlutterMacOS (from `Flutter/ephemeral`)
+  - photo_manager (from `Flutter/ephemeral/.symlinks/plugins/photo_manager/darwin`)
+  - pro_image_editor (from `Flutter/ephemeral/.symlinks/plugins/pro_image_editor/darwin`)
+  - shared_preferences_foundation (from `Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin`)
+  - sqflite_darwin (from `Flutter/ephemeral/.symlinks/plugins/sqflite_darwin/darwin`)
+  - video_player_avfoundation (from `Flutter/ephemeral/.symlinks/plugins/video_player_avfoundation/darwin`)
+
+EXTERNAL SOURCES:
+  file_picker:
+    :path: Flutter/ephemeral/.symlinks/plugins/file_picker/darwin
+  FlutterMacOS:
+    :path: Flutter/ephemeral
+  photo_manager:
+    :path: Flutter/ephemeral/.symlinks/plugins/photo_manager/darwin
+  pro_image_editor:
+    :path: Flutter/ephemeral/.symlinks/plugins/pro_image_editor/darwin
+  shared_preferences_foundation:
+    :path: Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin
+  sqflite_darwin:
+    :path: Flutter/ephemeral/.symlinks/plugins/sqflite_darwin/darwin
+  video_player_avfoundation:
+    :path: Flutter/ephemeral/.symlinks/plugins/video_player_avfoundation/darwin
+
+SPEC CHECKSUMS:
+  file_picker: 70164d9778c42c47218d6cd79ce435de0856b11a
+  FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
+  photo_manager: c303e4476f6c220274119f0212a7753e45edd4a2
+  pro_image_editor: e57a76b305fd8c2e06d57f92aec82b9c6a6e8d9f
+  shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
+  sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
+  video_player_avfoundation: 3453f792138786248960ca029747fcd9f318ef52
+
+PODFILE CHECKSUM: 54d867c82ac51cbd61b565781b9fada492027009
+
+COCOAPODS: 1.17.0

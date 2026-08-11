@@ -1,0 +1,10 @@
+{
+  "name": "演示表情包",
+  "id": "sample_demo",
+  "stickers": [
+    {"file": "smile.png", "name": "微笑"},
+    {"file": "laugh.png", "name": "大笑"},
+    {"file": "love.png", "name": "爱心"},
+    {"file": "spark.json", "name": "闪光", "kind": "lottie"}
+  ]
+}
