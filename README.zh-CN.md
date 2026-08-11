@@ -6,7 +6,7 @@
 
 功能：
 
-1. **Giphy 在线搜索**并下载合成为本地收藏表情  
+1. **Klipy 在线搜索**并下载合成为本地收藏表情  
 2. **常规表情**（Unicode 表情 +「最近使用」、抖音常用表情）  
 3. **自定义表情**管理（`file_picker` 选择图片/GIF/Lottie）  
 4. **拍自己的表情**（iOS/Android：`wechat_camera_picker`；Web/桌面：`file_picker` `FileType.image` → `pro_image_editor`）  
@@ -18,7 +18,7 @@
 |------|-----|---------|-----|-------|---------|-------|
 | 表情面板 / 最近使用 / 抖音表情 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 |
 | file_picker 添加/导入 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 |
-| Giphy 搜索合成 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 |
+| Klipy 搜索合成 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 |
 | 拍照/选图编辑 | WeChat 相机 | WeChat 相机 | FileType.image | FileType.image | FileType.image | FileType.image |
 
 ## 快速开始
@@ -34,7 +34,7 @@ import 'package:emoji_weixin/emoji_weixin.dart';
 
 // 方式 1：启动时全局配置
 EmojiWeixinConfig.configure(
-  const EmojiWeixinConfig(giphyApiKey: '你的 Giphy API Key'),
+  const EmojiWeixinConfig(klipyApiKey: '你的 Klipy API Key'),
 );
 
 EmojiWeixinPanel(
@@ -45,7 +45,7 @@ EmojiWeixinPanel(
 
 // 方式 2：按面板传入
 EmojiWeixinPanel(
-  config: const EmojiWeixinConfig(giphyApiKey: '你的 Giphy API Key'),
+  config: const EmojiWeixinConfig(klipyApiKey: '你的 Klipy API Key'),
   onStickerSelected: (sticker) {},
 );
 ```
@@ -54,7 +54,7 @@ EmojiWeixinPanel(
 
 ```bash
 cd example
-# 编辑 assets/config.json，填入 giphyApiKey
+# 编辑 assets/config.json，填入 klipyApiKey
 flutter pub get
 flutter run                      # 或 -d chrome / macos / windows / linux
 ```
@@ -70,17 +70,18 @@ flutter run                      # 或 -d chrome / macos / windows / linux
 
 资源位置：`assets/stickers/douyin/`（`info.json` + `static/`）。
 
-## Giphy API Key
+## Klipy API Key
 
 通过配置传递，**不再使用** `--dart-define`：
 
-1. 到 [Giphy Developers](https://developers.giphy.com/) 注册应用并获取 API Key  
+1. 到 [KLIPY Partner Panel](https://partner.klipy.com) 创建 Key（[文档](https://docs.klipy.com/getting-started)）  
 2. 宿主 App：`EmojiWeixinConfig.configure(...)` 或面板参数 `config:`  
-3. example：编辑 [`example/assets/config.json`](example/assets/config.json)（可参考 `config.example.json`）
+3. example：编辑 [`example/assets/config.json`](example/assets/config.json)（可参考 `config.example.json`）  
+4. 使用搜索时需展示 KLIPY 品牌标识（[attribution](https://docs.klipy.com/attribution)）
 
 ```json
 {
-  "giphyApiKey": "你的Key"
+  "klipyApiKey": "你的Key"
 }
 ```
 
@@ -134,12 +135,12 @@ example 自带样例：`example/assets/sample_pack.zip`。
 
 | API | 说明 |
 |-----|------|
-| `EmojiWeixinConfig` | 应用/面板配置（如 Giphy Key） |
+| `EmojiWeixinConfig` | 应用/面板配置（如 Klipy Key） |
 | `EmojiWeixinPanel` | 仿微信底部表情面板 |
 | `StickerRepository` | 表情包/收藏持久化（Hive） |
 | `StickerImportService` | `file_picker` 添加与导入 |
 | `CameraStickerService` | 拍照/选图 + 编辑 |
-| `GiphyClient` / `GiphyStickerService` | 搜索与下载合成 |
+| `KlipyClient` / `KlipyStickerService` | 搜索与下载合成 |
 | `StickerRenderer` | PNG/GIF/Lottie/Unicode 统一渲染 |
 
 ## 文档

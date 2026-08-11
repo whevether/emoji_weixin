@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import '../config/emoji_weixin_config.dart';
 import '../data/builtin_emoji_catalog.dart';
 import '../data/sticker_repository.dart';
-import '../giphy/giphy_client.dart';
-import '../giphy/giphy_sticker_service.dart';
+import '../klipy/klipy_client.dart';
 import '../models/sticker.dart';
 import '../models/sticker_pack.dart';
 import '../models/sticker_source.dart';
@@ -13,7 +12,7 @@ import '../services/camera_sticker_service.dart';
 import '../services/sticker_import_service.dart';
 import '../widgets/sticker_renderer.dart';
 import 'sticker_manage_page.dart';
-import 'giphy_search_tab.dart';
+import 'klipy_search_tab.dart';
 
 typedef StickerSelectedCallback = void Function(Sticker sticker);
 
@@ -28,7 +27,7 @@ class EmojiWeixinPanel extends StatefulWidget {
 
   final StickerSelectedCallback onStickerSelected;
 
-  /// Panel config (e.g. Giphy key). Falls back to [EmojiWeixinConfig.global].
+  /// Panel config (e.g. Klipy key). Falls back to [EmojiWeixinConfig.global].
   final EmojiWeixinConfig? config;
   final double height;
 
@@ -45,8 +44,7 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
   int _tabIndex = 0;
   bool _ready = false;
   String? _error;
-  GiphyClient? _giphy;
-  GiphyStickerService? _giphyService;
+  KlipyClient? _klipy;
   List<Sticker> _recent = const [];
 
   @override
@@ -59,10 +57,9 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
     try {
       await _repo.init();
       final config = EmojiWeixinConfig.resolve(widget.config);
-      final key = config.resolvedGiphyApiKey;
+      final key = config.resolvedKlipyApiKey;
       if (key != null) {
-        _giphy = GiphyClient(apiKey: key);
-        _giphyService = GiphyStickerService(client: _giphy!);
+        _klipy = KlipyClient(apiKey: key);
       }
       _rebuildTabs();
       setState(() => _ready = true);
@@ -78,7 +75,7 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
     _tabs = [
       _PanelTab.system(system),
       for (final pack in packs) _PanelTab.pack(pack),
-      if (_giphy != null) _PanelTab.search(),
+      if (_klipy != null) _PanelTab.search(),
     ];
     if (_tabIndex >= _tabs.length) _tabIndex = 0;
   }
@@ -97,7 +94,7 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
 
   @override
   void dispose() {
-    _giphy?.close();
+    _klipy?.close();
     super.dispose();
   }
 
@@ -169,18 +166,8 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
 
   Widget _buildBody(_PanelTab tab) {
     if (tab.isSearch) {
-      return GiphySearchTab(
-        client: _giphy!,
-        onAddToFavorite: (item) async {
-          final sticker = await _giphyService!.composeToFavorite(item);
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('已添加到收藏')),
-            );
-            await _refresh();
-          }
-          return sticker;
-        },
+      return KlipySearchTab(
+        client: _klipy!,
         onSelected: _select,
       );
     }

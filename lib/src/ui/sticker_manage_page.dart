@@ -52,7 +52,7 @@ class _StickerManagePageState extends State<StickerManagePage> {
                   onTap: () => _rename(pack),
                 ),
               if (pack.source == StickerSource.imported ||
-                  pack.source == StickerSource.giphy)
+                  pack.source == StickerSource.klipy)
                 ListTile(
                   leading: const Icon(Icons.delete_outline, color: Colors.red),
                   title: const Text('删除表情包'),

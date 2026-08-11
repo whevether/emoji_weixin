@@ -4,11 +4,11 @@ import 'package:flutter/services.dart';
 
 /// Loads example app settings from [assets/config.json].
 class AppConfig {
-  const AppConfig({this.giphyApiKey = ''});
+  const AppConfig({this.klipyApiKey = ''});
 
-  final String giphyApiKey;
+  final String klipyApiKey;
 
-  bool get hasGiphy => giphyApiKey.trim().isNotEmpty;
+  bool get hasKlipy => klipyApiKey.trim().isNotEmpty;
 
   static Future<AppConfig> load() async {
     for (final path in const [
@@ -18,12 +18,14 @@ class AppConfig {
       try {
         final raw = await rootBundle.loadString(path);
         final json = jsonDecode(raw) as Map<String, dynamic>;
-        final key = (json['giphyApiKey'] as String?)?.trim() ?? '';
+        final key = (json['klipyApiKey'] as String?)?.trim() ??
+            (json['giphyApiKey'] as String?)?.trim() ??
+            '';
         // Ignore placeholder text from the example file.
         if (key.isEmpty || key.contains('填入')) {
           continue;
         }
-        return AppConfig(giphyApiKey: key);
+        return AppConfig(klipyApiKey: key);
       } catch (_) {
         // try next
       }

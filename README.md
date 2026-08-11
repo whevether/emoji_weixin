@@ -6,7 +6,7 @@ WeChat-style Flutter emoji/sticker panel package.
 
 Features:
 
-1. **Giphy online search** — download and save results as local favorites  
+1. **Klipy online search** — download and save results as local favorites  
 2. **Built-in emoji** — Unicode emoji + recently used, plus Douyin common stickers  
 3. **Custom stickers** — add/manage via `file_picker` (PNG/JPG/WebP/GIF/Lottie)  
 4. **Capture & edit** — iOS/Android: `wechat_camera_picker`; Web/desktop: `file_picker` `FileType.image` → `pro_image_editor`  
@@ -18,7 +18,7 @@ Features:
 |---------|-----|---------|-----|-------|---------|-------|
 | Panel / recent / Douyin stickers | Yes | Yes | Yes | Yes | Yes | Yes |
 | file_picker add/import | Yes | Yes | Yes | Yes | Yes | Yes |
-| Giphy search & save | Yes | Yes | Yes | Yes | Yes | Yes |
+| Klipy search & save | Yes | Yes | Yes | Yes | Yes | Yes |
 | Capture/pick & edit | WeChat camera | WeChat camera | FileType.image | FileType.image | FileType.image | FileType.image |
 
 ## Quick start
@@ -34,7 +34,7 @@ import 'package:emoji_weixin/emoji_weixin.dart';
 
 // Option 1: global config at startup
 EmojiWeixinConfig.configure(
-  const EmojiWeixinConfig(giphyApiKey: 'YOUR_GIPHY_API_KEY'),
+  const EmojiWeixinConfig(klipyApiKey: 'YOUR_KLIPY_API_KEY'),
 );
 
 EmojiWeixinPanel(
@@ -45,7 +45,7 @@ EmojiWeixinPanel(
 
 // Option 2: pass config per panel
 EmojiWeixinPanel(
-  config: const EmojiWeixinConfig(giphyApiKey: 'YOUR_GIPHY_API_KEY'),
+  config: const EmojiWeixinConfig(klipyApiKey: 'YOUR_KLIPY_API_KEY'),
   onStickerSelected: (sticker) {},
 );
 ```
@@ -54,7 +54,7 @@ EmojiWeixinPanel(
 
 ```bash
 cd example
-# Edit assets/config.json and set giphyApiKey
+# Edit assets/config.json and set klipyApiKey
 flutter pub get
 flutter run                      # or -d chrome / macos / windows / linux
 ```
@@ -70,17 +70,18 @@ Asset copyright belongs to Douyin / rights holders. **For learning and exchange 
 
 Assets live under `assets/stickers/douyin/` (`info.json` + `static/`).
 
-## Giphy API key
+## Klipy API key
 
 Pass the key through configuration (**not** `--dart-define`):
 
-1. Create a key at [Giphy Developers](https://developers.giphy.com/)  
+1. Create a key at [KLIPY Partner Panel](https://partner.klipy.com) ([docs](https://docs.klipy.com/getting-started))  
 2. Host app: `EmojiWeixinConfig.configure(...)` or panel `config:`  
-3. Example app: edit [`example/assets/config.json`](example/assets/config.json) (see `config.example.json`)
+3. Example app: edit [`example/assets/config.json`](example/assets/config.json) (see `config.example.json`)  
+4. Show KLIPY attribution in your UI when using search ([attribution](https://docs.klipy.com/attribution))
 
 ```json
 {
-  "giphyApiKey": "YOUR_KEY"
+  "klipyApiKey": "YOUR_KEY"
 }
 ```
 
@@ -134,12 +135,12 @@ Aligned with [kinetic_player/example](https://github.com/wanwenfeng4798/kinetic_
 
 | API | Description |
 |-----|-------------|
-| `EmojiWeixinConfig` | App/panel configuration (e.g. Giphy key) |
+| `EmojiWeixinConfig` | App/panel configuration (e.g. Klipy key) |
 | `EmojiWeixinPanel` | WeChat-style bottom sticker panel |
 | `StickerRepository` | Pack/favorites persistence (Hive) |
 | `StickerImportService` | Add/import via `file_picker` |
 | `CameraStickerService` | Capture/pick + edit |
-| `GiphyClient` / `GiphyStickerService` | Search and download |
+| `KlipyClient` / `KlipyStickerService` | Search and download |
 | `StickerRenderer` | PNG/GIF/Lottie/Unicode rendering |
 
 ## Docs

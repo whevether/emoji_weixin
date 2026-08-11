@@ -1,17 +1,17 @@
 /// Host-app configuration for [EmojiWeixinPanel].
 class EmojiWeixinConfig {
   const EmojiWeixinConfig({
-    this.giphyApiKey,
+    this.klipyApiKey,
   });
 
-  /// Giphy API key. When null/empty, the search tab is hidden.
-  final String? giphyApiKey;
+  /// Klipy API key. When null/empty, the search tab is hidden.
+  final String? klipyApiKey;
 
-  bool get hasGiphy =>
-      giphyApiKey != null && giphyApiKey!.trim().isNotEmpty;
+  bool get hasKlipy =>
+      klipyApiKey != null && klipyApiKey!.trim().isNotEmpty;
 
-  String? get resolvedGiphyApiKey =>
-      hasGiphy ? giphyApiKey!.trim() : null;
+  String? get resolvedKlipyApiKey =>
+      hasKlipy ? klipyApiKey!.trim() : null;
 
   /// Optional process-wide default, set once at app startup.
   static EmojiWeixinConfig? _global;

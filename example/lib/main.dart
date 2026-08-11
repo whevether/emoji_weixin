@@ -7,7 +7,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final appConfig = await AppConfig.load();
   EmojiWeixinConfig.configure(
-    EmojiWeixinConfig(giphyApiKey: appConfig.giphyApiKey),
+    EmojiWeixinConfig(klipyApiKey: appConfig.klipyApiKey),
   );
   runApp(const EmojiWeixinDemoApp());
 }
@@ -41,7 +41,9 @@ class _ChatDemoPageState extends State<ChatDemoPage> {
     _ChatMessage.text('你好，点下方表情按钮试试仿微信表情面板。'),
   ];
   final _textController = TextEditingController();
+  final _favoriteService = KlipyStickerService();
   bool _showPanel = false;
+  int _panelEpoch = 0;
 
   @override
   void dispose() {
@@ -65,6 +67,49 @@ class _ChatDemoPageState extends State<ChatDemoPage> {
     });
   }
 
+  Future<void> _showStickerMenu(
+    Offset globalPosition,
+    Sticker sticker,
+  ) async {
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final selected = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        globalPosition & const Size(1, 1),
+        Offset.zero & overlay.size,
+      ),
+      items: const [
+        PopupMenuItem(value: 'favorite', child: Text('收藏')),
+      ],
+    );
+    if (!mounted || selected != 'favorite') return;
+    await _favoriteSticker(sticker);
+  }
+
+  Future<void> _favoriteSticker(Sticker sticker) async {
+    final url = sticker.networkUrl;
+    if (url == null || url.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('该表情无法收藏')),
+      );
+      return;
+    }
+    try {
+      await _favoriteService.saveStickerToFavorite(sticker);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('已添加到收藏')),
+      );
+      // Remount panel so the favorites tab picks up the new sticker.
+      setState(() => _panelEpoch++);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('收藏失败: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -83,15 +128,25 @@ class _ChatDemoPageState extends State<ChatDemoPage> {
               itemCount: _messages.length,
               itemBuilder: (context, index) {
                 final msg = _messages[index];
-                // Stickers render without bubble background (WeChat-like).
                 if (msg.sticker != null) {
+                  final sticker = msg.sticker!;
                   return Align(
                     alignment: Alignment.centerRight,
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      width: 120,
-                      height: 120,
-                      child: StickerRenderer(sticker: msg.sticker!),
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: GestureDetector(
+                        onSecondaryTapDown: (details) {
+                          _showStickerMenu(details.globalPosition, sticker);
+                        },
+                        onLongPressStart: (details) {
+                          _showStickerMenu(details.globalPosition, sticker);
+                        },
+                        child: SizedBox(
+                          width: 120,
+                          height: 120,
+                          child: StickerRenderer(sticker: sticker),
+                        ),
+                      ),
                     ),
                   );
                 }
@@ -114,6 +169,7 @@ class _ChatDemoPageState extends State<ChatDemoPage> {
           _buildInputBar(),
           if (_showPanel)
             EmojiWeixinPanel(
+              key: ValueKey(_panelEpoch),
               onStickerSelected: _onSticker,
             ),
         ],

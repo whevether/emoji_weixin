@@ -107,7 +107,7 @@ class StickerRepository {
           StickerSource.builtin => 1,
           StickerSource.custom => 2,
           StickerSource.imported => 3,
-          StickerSource.giphy => 4,
+          StickerSource.klipy => 4,
         };
       }
 

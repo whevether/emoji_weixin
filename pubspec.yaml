@@ -1,5 +1,5 @@
 name: emoji_weixin
-description: WeChat-style emoji/sticker panel for Flutter with Giphy search, custom stickers, camera capture, and GIF/Lottie pack import.
+description: WeChat-style emoji/sticker panel for Flutter with Klipy search, custom stickers, camera capture, and GIF/Lottie pack import.
 version: 0.1.0
 homepage: https://github.com/example/emoji_weixin
 
