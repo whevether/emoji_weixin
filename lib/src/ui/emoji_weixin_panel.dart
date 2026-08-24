@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../config/emoji_weixin_config.dart';
 import '../data/builtin_emoji_catalog.dart';

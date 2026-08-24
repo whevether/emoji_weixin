@@ -29,14 +29,12 @@ class StickerImportService {
       type: FileType.custom,
       allowedExtensions: [..._imageExts, ..._lottieExts],
     );
-    if (files == null || files.files.isEmpty) return const [];
+    if (files.isEmpty) return const [];
 
     final added = <Sticker>[];
-    for (final file in files.files) {
-      final bytes = await file.xFile.readAsBytes();
-      final ext =
-          (file.extension ?? p.extension(file.name).replaceFirst('.', ''))
-              .toLowerCase();
+    for (final file in files) {
+      final bytes = await file.readAsBytes();
+      final ext = p.extension(file.name).replaceFirst('.', '').toLowerCase();
       final id = _repo.newId();
       final filename = '$id.${ext.isEmpty ? 'png' : ext}';
       final ref = await StickerStorage.saveBytes(
@@ -63,10 +61,8 @@ class StickerImportService {
     );
     if (file == null) return null;
 
-    final bytes = await file.xFile.readAsBytes();
-    final ext =
-        (file.extension ?? p.extension(file.name).replaceFirst('.', ''))
-            .toLowerCase();
+    final bytes = await file.readAsBytes();
+    final ext = p.extension(file.name).replaceFirst('.', '').toLowerCase();
 
     if (ext == 'zip') {
       return _importZip(bytes, fallbackName: p.basenameWithoutExtension(file.name));

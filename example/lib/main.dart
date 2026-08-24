@@ -1,5 +1,5 @@
 import 'package:emoji_weixin/emoji_weixin.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'app_config.dart';
 
@@ -23,6 +23,9 @@ class EmojiWeixinDemoApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF07C160)),
         useMaterial3: true,
+      ),
+      builder: (context, child) => MaterialUiCompatibilityBridge( // ignore: deprecated_member_use
+        child: child!,
       ),
       home: const ChatDemoPage(),
     );

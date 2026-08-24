@@ -4,6 +4,8 @@
 
 仿微信风格的 Flutter 表情/贴纸面板 Package。
 
+**环境要求：** Dart 3.12+ / Flutter 3.44+。使用独立包 [`material_ui`](https://pub.dev/packages/material_ui)（`package:material_ui/material_ui.dart`），不再直接 import `package:flutter/material.dart`。宿主 App 建议同样迁移；对尚未迁移的第三方 Material 组件使用 `MaterialUiCompatibilityBridge` 桥接。
+
 功能：
 
 1. **Klipy 在线搜索**并下载合成为本地收藏表情  

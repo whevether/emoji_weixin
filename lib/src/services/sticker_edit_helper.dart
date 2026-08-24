@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:pro_image_editor/pro_image_editor.dart';
 
 import '../data/sticker_repository.dart';
@@ -19,7 +19,7 @@ abstract final class StickerEditHelper {
     );
     if (file == null || !context.mounted) return null;
 
-    final bytes = await file.xFile.readAsBytes();
+    final bytes = await file.readAsBytes();
     if (!context.mounted) return null;
     return editBytesAndSave(context, bytes);
   }
@@ -31,12 +31,14 @@ abstract final class StickerEditHelper {
   ) async {
     final edited = await Navigator.of(context).push<Uint8List>(
       MaterialPageRoute(
-        builder: (ctx) => ProImageEditor.memory(
-          bytes,
-          callbacks: ProImageEditorCallbacks(
-            onImageEditingComplete: (out) async {
-              Navigator.of(ctx).pop(out);
-            },
+        builder: (ctx) => MaterialUiCompatibilityBridge( // ignore: deprecated_member_use
+          child: ProImageEditor.memory(
+            bytes,
+            callbacks: ProImageEditorCallbacks(
+              onImageEditingComplete: (out) async {
+                Navigator.of(ctx).pop(out);
+              },
+            ),
           ),
         ),
       ),

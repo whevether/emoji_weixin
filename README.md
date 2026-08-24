@@ -4,6 +4,8 @@
 
 WeChat-style Flutter emoji/sticker panel package.
 
+**Requirements:** Dart 3.12+ / Flutter 3.44+. Uses standalone [`material_ui`](https://pub.dev/packages/material_ui) (`package:material_ui/material_ui.dart`) instead of `package:flutter/material.dart`. Host apps should do the same; wrap unmigrated third-party Material widgets with `MaterialUiCompatibilityBridge`.
+
 Features:
 
 1. **Klipy online search** — download and save results as local favorites  

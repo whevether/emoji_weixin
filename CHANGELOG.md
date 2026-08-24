@@ -6,6 +6,10 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## 0.2.0
+
+* Switch Material widgets from `package:flutter/material.dart` to standalone [`material_ui`](https://pub.dev/packages/material_ui) `^1.0.1` (`package:material_ui/material_ui.dart`). Requires Dart 3.12 / Flutter 3.44+.
+* Wrap legacy third-party Material widgets (`pro_image_editor`, `wechat_camera_picker`) with `MaterialUiCompatibilityBridge`.
 * Replace Giphy online search with [KLIPY](https://docs.klipy.com/) (`klipyApiKey` / `KlipyClient`).
 
 ## 0.1.0

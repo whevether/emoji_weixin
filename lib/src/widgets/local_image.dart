@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../platform/sticker_storage.dart';
 import 'local_image_io.dart' if (dart.library.html) 'local_image_web.dart'

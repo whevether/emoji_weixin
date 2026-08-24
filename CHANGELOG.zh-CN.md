@@ -6,6 +6,10 @@
 
 ## Unreleased
 
+## 0.2.0
+
+* Material 组件从 `package:flutter/material.dart` 切换为独立包 [`material_ui`](https://pub.dev/packages/material_ui) `^1.0.1`（`package:material_ui/material_ui.dart`）。需 Dart 3.12 / Flutter 3.44+。
+* 对仍使用旧 Material 的第三方组件（`pro_image_editor`、`wechat_camera_picker`）使用 `MaterialUiCompatibilityBridge` 桥接。
 * 在线搜索由 Giphy 切换为 [KLIPY](https://docs.klipy.com/)（`klipyApiKey` / `KlipyClient`）。
 
 ## 0.1.0

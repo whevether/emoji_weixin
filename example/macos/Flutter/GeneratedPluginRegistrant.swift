@@ -5,7 +5,7 @@
 import FlutterMacOS
 import Foundation
 
-import file_picker
+import file_picker_darwin
 import photo_manager
 import pro_image_editor
 import shared_preferences_foundation
