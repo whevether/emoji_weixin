@@ -7,7 +7,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final appConfig = await AppConfig.load();
   EmojiWeixinConfig.configure(
-    EmojiWeixinConfig(klipyApiKey: appConfig.klipyApiKey),
+    EmojiWeixinConfig(
+      klipyApiKey: appConfig.klipyApiKey,
+      locale: appConfig.locale,
+    ),
   );
   runApp(const EmojiWeixinDemoApp());
 }

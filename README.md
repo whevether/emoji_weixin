@@ -10,9 +10,9 @@ Features:
 
 1. **Klipy online search** — download and save results as local favorites  
 2. **Built-in emoji** — Unicode emoji + recently used, plus Douyin common stickers  
-3. **Custom stickers** — add/manage via `file_picker` (PNG/JPG/WebP/GIF/Lottie)  
-4. **Capture & edit** — iOS/Android: `wechat_camera_picker`; Web/desktop: `file_picker` `FileType.image` → `pro_image_editor`  
-5. **Import packs** — zip or single files (PNG/JPG/WebP/GIF/Lottie)
+3. **Custom stickers** — gallery pick via `image_picker`; static images open `pro_image_editor`, GIFs are added as-is  
+4. **Capture & edit** — iOS/Android only: system camera → `pro_image_editor`  
+5. **Multi-language UI** — `EmojiWeixinConfig.locale` (`zh` / `en` / `vi` / `id` / `fil` / `ms` / `hi`)
 
 ## Demo
 
@@ -27,9 +27,9 @@ Example app screen recording (Klipy search, send, right-click to favorite):
 | Feature | iOS | Android | Web | macOS | Windows | Linux |
 |---------|-----|---------|-----|-------|---------|-------|
 | Panel / recent / Douyin stickers | Yes | Yes | Yes | Yes | Yes | Yes |
-| file_picker add/import | Yes | Yes | Yes | Yes | Yes | Yes |
+| image_picker add/edit | Yes | Yes | Yes | Yes | Yes | Yes |
 | Klipy search & save | Yes | Yes | Yes | Yes | Yes | Yes |
-| Capture/pick & edit | WeChat camera | WeChat camera | FileType.image | FileType.image | FileType.image | FileType.image |
+| Capture & edit | System camera | System camera | — | — | — | — |
 
 ## Quick start
 
@@ -44,7 +44,10 @@ import 'package:emoji_weixin/emoji_weixin.dart';
 
 // Option 1: global config at startup
 EmojiWeixinConfig.configure(
-  const EmojiWeixinConfig(klipyApiKey: 'YOUR_KLIPY_API_KEY'),
+  const EmojiWeixinConfig(
+    klipyApiKey: 'YOUR_KLIPY_API_KEY',
+    locale: EmojiWeixinLocale.en, // zh en vi id fil ms hi
+  ),
 );
 
 EmojiWeixinPanel(
@@ -97,23 +100,6 @@ Pass the key through configuration (**not** `--dart-define`):
 
 If the key is missing or empty, the search tab is hidden; other features still work.
 
-## Import pack format
-
-Preferred zip layout with `manifest.json`:
-
-```json
-{
-  "name": "Demo Pack",
-  "id": "sample_demo",
-  "stickers": [
-    {"file": "smile.png", "name": "smile"},
-    {"file": "spark.json", "name": "spark", "kind": "lottie"}
-  ]
-}
-```
-
-Sample pack: `example/assets/sample_pack.zip`.
-
 ## Android (example)
 
 Aligned with [kinetic_player/example](https://github.com/wanwenfeng4798/kinetic_player/tree/main/example):
@@ -123,7 +109,6 @@ Aligned with [kinetic_player/example](https://github.com/wanwenfeng4798/kinetic_
 - AGP: **9.3.1**
 - Kotlin: **2.4.10**
 - Gradle: **9.6.1**
-- `file_picker`: **12.0.0-beta.7** (AGP 9 compatible)
 - Release signing: [`example/android/key.properties`](example/android/key.properties) + [`example/jks/emoji_weixin.jks`](example/jks/emoji_weixin.jks) (demo keystore; replace for production)
 - Release minify/shrink + [`proguard-rules.pro`](example/android/app/proguard-rules.pro)
 
@@ -131,7 +116,7 @@ Aligned with [kinetic_player/example](https://github.com/wanwenfeng4798/kinetic_
 
 ### iOS
 
-- `NSCameraUsageDescription` / `NSMicrophoneUsageDescription` / `NSPhotoLibraryUsageDescription`
+- `NSCameraUsageDescription` / `NSPhotoLibraryUsageDescription`
 
 ### Android
 
@@ -145,13 +130,14 @@ Aligned with [kinetic_player/example](https://github.com/wanwenfeng4798/kinetic_
 
 | API | Description |
 |-----|-------------|
-| `EmojiWeixinConfig` | App/panel configuration (e.g. Klipy key) |
+| `EmojiWeixinConfig` | App/panel configuration (Klipy key, `locale`) |
+| `EmojiWeixinLocale` | UI language: China/USA/Vietnam/Indonesia/Philippines/Malaysia/India |
 | `EmojiWeixinPanel` | WeChat-style bottom sticker panel |
 | `StickerRepository` | Pack/favorites persistence (Hive) |
-| `StickerImportService` | Add/import via `file_picker` |
-| `CameraStickerService` | Capture/pick + edit |
+| `StickerImportService` | Gallery add/edit via `image_picker` |
+| `CameraStickerService` | Capture + edit (mobile) |
 | `KlipyClient` / `KlipyStickerService` | Search and download |
-| `StickerRenderer` | PNG/GIF/Lottie/Unicode rendering |
+| `StickerRenderer` | PNG/GIF/Unicode rendering |
 
 ## Docs
 

@@ -6,6 +6,13 @@
 
 ## Unreleased
 
+## 0.3.0
+
+* 使用 [`image_picker`](https://pub.dev/packages/image_picker) `^1.2.3` 替代 `wechat_camera_picker` 与 `file_picker`；移除 `archive`、`lottie`。
+* 移除 zip/Lottie 表情包导入与 `StickerKind.lottie`；添加菜单为添加/编辑图片（仅 iOS/Android 另有拍照）。
+* 相册静态图进入 `pro_image_editor`；GIF 无法在编辑器中保留动图，故直接添加。
+* 多语言 UI：通过 `EmojiWeixinConfig.locale` / `EmojiWeixinLocale` 配置，支持 `zh`（中国）、`en`（美国）、`vi`、`id`、`fil`、`ms`、`hi`。
+
 ## 0.2.0
 
 * Material 组件从 `package:flutter/material.dart` 切换为独立包 [`material_ui`](https://pub.dev/packages/material_ui) `^1.0.1`（`package:material_ui/material_ui.dart`）。需 Dart 3.12 / Flutter 3.44+。

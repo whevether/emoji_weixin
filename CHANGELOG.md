@@ -6,6 +6,13 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## 0.3.0
+
+* Replace `wechat_camera_picker` and `file_picker` with [`image_picker`](https://pub.dev/packages/image_picker) `^1.2.3`; remove `archive` and `lottie`.
+* Remove zip/Lottie pack import and `StickerKind.lottie`. Add menu is add/edit image (+ camera on iOS/Android only).
+* Gallery static images open `pro_image_editor`; GIFs cannot keep animation in the editor so they are saved as-is.
+* Multi-language UI via `EmojiWeixinConfig.locale` / `EmojiWeixinLocale`: `zh` (China), `en` (USA), `vi`, `id`, `fil`, `ms`, `hi`.
+
 ## 0.2.0
 
 * Switch Material widgets from `package:flutter/material.dart` to standalone [`material_ui`](https://pub.dev/packages/material_ui) `^1.0.1` (`package:material_ui/material_ui.dart`). Requires Dart 3.12 / Flutter 3.44+.

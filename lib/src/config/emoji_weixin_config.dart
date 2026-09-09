@@ -1,11 +1,21 @@
+import '../l10n/emoji_weixin_locale.dart';
+import '../l10n/emoji_weixin_strings.dart';
+
 /// Host-app configuration for [EmojiWeixinPanel].
 class EmojiWeixinConfig {
   const EmojiWeixinConfig({
     this.klipyApiKey,
+    this.locale = EmojiWeixinLocale.zh,
   });
 
   /// Klipy API key. When null/empty, the search tab is hidden.
   final String? klipyApiKey;
+
+  /// UI language. Supported: zh / en / vi / id / fil / ms / hi
+  /// (China / USA / Vietnam / Indonesia / Philippines / Malaysia / India).
+  final EmojiWeixinLocale locale;
+
+  EmojiWeixinStrings get strings => EmojiWeixinStrings.of(locale);
 
   bool get hasKlipy =>
       klipyApiKey != null && klipyApiKey!.trim().isNotEmpty;
@@ -27,7 +37,7 @@ class EmojiWeixinConfig {
     _global = null;
   }
 
-  /// Merge explicit [config] over the global default.
+  /// Use explicit [config], else the global default, else empty defaults.
   static EmojiWeixinConfig resolve(EmojiWeixinConfig? config) {
     return config ?? _global ?? const EmojiWeixinConfig();
   }

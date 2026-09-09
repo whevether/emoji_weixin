@@ -10,9 +10,9 @@
 
 1. **Klipy 在线搜索**并下载合成为本地收藏表情  
 2. **常规表情**（Unicode 表情 +「最近使用」、抖音常用表情）  
-3. **自定义表情**管理（`file_picker` 选择图片/GIF/Lottie）  
-4. **拍自己的表情**（iOS/Android：`wechat_camera_picker`；Web/桌面：`file_picker` `FileType.image` → `pro_image_editor`）  
-5. **导入表情包**（zip / 单文件，支持 PNG、JPG、WebP、GIF、Lottie）
+3. **自定义表情**（`image_picker` 选图；静态图进 `pro_image_editor`，GIF 直接添加）  
+4. **拍自己的表情**（仅 iOS/Android：系统相机 → `pro_image_editor`）  
+5. **多语言 UI**（`EmojiWeixinConfig.locale`：`zh` / `en` / `vi` / `id` / `fil` / `ms` / `hi`）
 
 ## 演示
 
@@ -27,9 +27,9 @@
 | 能力 | iOS | Android | Web | macOS | Windows | Linux |
 |------|-----|---------|-----|-------|---------|-------|
 | 表情面板 / 最近使用 / 抖音表情 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 |
-| file_picker 添加/导入 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 |
+| image_picker 添加/编辑 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 |
 | Klipy 搜索合成 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 |
-| 拍照/选图编辑 | WeChat 相机 | WeChat 相机 | FileType.image | FileType.image | FileType.image | FileType.image |
+| 拍照编辑 | 系统相机 | 系统相机 | — | — | — | — |
 
 ## 快速开始
 
@@ -44,7 +44,10 @@ import 'package:emoji_weixin/emoji_weixin.dart';
 
 // 方式 1：启动时全局配置
 EmojiWeixinConfig.configure(
-  const EmojiWeixinConfig(klipyApiKey: '你的 Klipy API Key'),
+  const EmojiWeixinConfig(
+    klipyApiKey: '你的 Klipy API Key',
+    locale: EmojiWeixinLocale.zh, // zh en vi id fil ms hi
+  ),
 );
 
 EmojiWeixinPanel(
@@ -97,23 +100,6 @@ flutter run                      # 或 -d chrome / macos / windows / linux
 
 未配置或为空时，搜索 Tab 不显示，其余功能可用。
 
-## 导入表情包格式
-
-zip 内建议包含 `manifest.json`：
-
-```json
-{
-  "name": "演示表情包",
-  "id": "sample_demo",
-  "stickers": [
-    {"file": "smile.png", "name": "微笑"},
-    {"file": "spark.json", "name": "闪光", "kind": "lottie"}
-  ]
-}
-```
-
-example 自带样例：`example/assets/sample_pack.zip`。
-
 ## Android 配置（example）
 
 对齐 [kinetic_player/example](https://github.com/wanwenfeng4798/kinetic_player/tree/main/example)：
@@ -123,7 +109,6 @@ example 自带样例：`example/assets/sample_pack.zip`。
 - AGP：**9.3.1**
 - Kotlin：**2.4.10**
 - Gradle：**9.6.1**
-- `file_picker`：**12.0.0-beta.7**（兼容 AGP 9）
 - Release 签名：[`example/android/key.properties`](example/android/key.properties) + [`example/jks/emoji_weixin.jks`](example/jks/emoji_weixin.jks)（演示用证书，生产请自行替换）
 - Release 开启混淆压缩 + [`proguard-rules.pro`](example/android/app/proguard-rules.pro)
 
@@ -131,7 +116,7 @@ example 自带样例：`example/assets/sample_pack.zip`。
 
 ### iOS
 
-- `NSCameraUsageDescription` / `NSMicrophoneUsageDescription` / `NSPhotoLibraryUsageDescription`
+- `NSCameraUsageDescription` / `NSPhotoLibraryUsageDescription`
 
 ### Android
 
@@ -145,13 +130,14 @@ example 自带样例：`example/assets/sample_pack.zip`。
 
 | API | 说明 |
 |-----|------|
-| `EmojiWeixinConfig` | 应用/面板配置（如 Klipy Key） |
+| `EmojiWeixinConfig` | 应用/面板配置（Klipy Key、`locale`） |
+| `EmojiWeixinLocale` | UI 语种：中国/美国/越南/印尼/菲律宾/马来西亚/印度 |
 | `EmojiWeixinPanel` | 仿微信底部表情面板 |
 | `StickerRepository` | 表情包/收藏持久化（Hive） |
-| `StickerImportService` | `file_picker` 添加与导入 |
-| `CameraStickerService` | 拍照/选图 + 编辑 |
+| `StickerImportService` | `image_picker` 添加/编辑 |
+| `CameraStickerService` | 拍照 + 编辑（移动端） |
 | `KlipyClient` / `KlipyStickerService` | 搜索与下载合成 |
-| `StickerRenderer` | PNG/GIF/Lottie/Unicode 统一渲染 |
+| `StickerRenderer` | PNG/GIF/Unicode 统一渲染 |
 
 ## 文档
 

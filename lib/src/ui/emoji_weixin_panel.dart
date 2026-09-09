@@ -2,8 +2,10 @@ import 'package:material_ui/material_ui.dart';
 
 import '../config/emoji_weixin_config.dart';
 import '../data/builtin_emoji_catalog.dart';
+import '../data/douyin_sticker_catalog.dart';
 import '../data/sticker_repository.dart';
 import '../klipy/klipy_client.dart';
+import '../l10n/emoji_weixin_strings.dart';
 import '../models/sticker.dart';
 import '../models/sticker_pack.dart';
 import '../models/sticker_source.dart';
@@ -27,7 +29,7 @@ class EmojiWeixinPanel extends StatefulWidget {
 
   final StickerSelectedCallback onStickerSelected;
 
-  /// Panel config (e.g. Klipy key). Falls back to [EmojiWeixinConfig.global].
+  /// Panel config (e.g. Klipy key, locale). Falls back to [EmojiWeixinConfig.global].
   final EmojiWeixinConfig? config;
   final double height;
 
@@ -46,18 +48,31 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
   String? _error;
   KlipyClient? _klipy;
   List<Sticker> _recent = const [];
+  late EmojiWeixinConfig _config;
+
+  EmojiWeixinStrings get _s => _config.strings;
 
   @override
   void initState() {
     super.initState();
+    _config = EmojiWeixinConfig.resolve(widget.config);
     _bootstrap();
+  }
+
+  @override
+  void didUpdateWidget(covariant EmojiWeixinPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.config != widget.config) {
+      _config = EmojiWeixinConfig.resolve(widget.config);
+      _rebuildTabs();
+    }
   }
 
   Future<void> _bootstrap() async {
     try {
       await _repo.init();
-      final config = EmojiWeixinConfig.resolve(widget.config);
-      final key = config.resolvedKlipyApiKey;
+      _config = EmojiWeixinConfig.resolve(widget.config);
+      final key = _config.resolvedKlipyApiKey;
       if (key != null) {
         _klipy = KlipyClient(apiKey: key);
       }
@@ -68,14 +83,20 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
     }
   }
 
+  String _packTitle(StickerPack pack) {
+    if (pack.id == BuiltinEmojiCatalog.packId) return _s.emojiPack;
+    if (pack.id == DouyinStickerCatalog.packId) return _s.douyinPack;
+    return pack.name;
+  }
+
   void _rebuildTabs() {
     _recent = _repo.getRecentStickers();
     final packs = _repo.getAllPacks();
     final system = BuiltinEmojiCatalog.pack();
     _tabs = [
-      _PanelTab.system(system),
-      for (final pack in packs) _PanelTab.pack(pack),
-      if (_klipy != null) _PanelTab.search(),
+      _PanelTab.system(_packTitle(system), system),
+      for (final pack in packs) _PanelTab.pack(_packTitle(pack), pack),
+      if (_klipy != null) _PanelTab.search(_s.search),
     ];
     if (_tabIndex >= _tabs.length) _tabIndex = 0;
   }
@@ -103,7 +124,7 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
     if (_error != null) {
       return SizedBox(
         height: widget.height,
-        child: Center(child: Text('加载失败: $_error')),
+        child: Center(child: Text(_s.loadFailed(_error!))),
       );
     }
     if (!_ready) {
@@ -145,16 +166,18 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
           ),
           const Spacer(),
           IconButton(
-            tooltip: '添加',
+            tooltip: _s.addTooltip,
             icon: const Icon(Icons.add_circle_outline, size: 22),
             onPressed: _showAddMenu,
           ),
           IconButton(
-            tooltip: '管理',
+            tooltip: _s.manageTooltip,
             icon: const Icon(Icons.settings_outlined, size: 22),
             onPressed: () async {
               await Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const StickerManagePage()),
+                MaterialPageRoute(
+                  builder: (_) => StickerManagePage(strings: _s),
+                ),
               );
               await _refresh();
             },
@@ -168,6 +191,7 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
     if (tab.isSearch) {
       return KlipySearchTab(
         client: _klipy!,
+        strings: _s,
         onSelected: _select,
       );
     }
@@ -202,12 +226,12 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
     return CustomScrollView(
       slivers: [
         if (_recent.isNotEmpty) ...[
-          const SliverToBoxAdapter(
+          SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(12, 10, 12, 4),
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
               child: Text(
-                '最近使用',
-                style: TextStyle(fontSize: 12, color: Colors.black54),
+                _s.recentUsed,
+                style: const TextStyle(fontSize: 12, color: Colors.black54),
               ),
             ),
           ),
@@ -233,12 +257,12 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
             ),
           ),
         ],
-        const SliverToBoxAdapter(
+        SliverToBoxAdapter(
           child: Padding(
-            padding: EdgeInsets.fromLTRB(12, 10, 12, 4),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
             child: Text(
-              '所有表情',
-              style: TextStyle(fontSize: 12, color: Colors.black54),
+              _s.allEmoji,
+              style: const TextStyle(fontSize: 12, color: Colors.black54),
             ),
           ),
         ),
@@ -342,22 +366,15 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
           children: [
             ListTile(
               leading: const Icon(Icons.image_outlined),
-              title: const Text('添加图片/GIF/Lottie'),
+              title: Text(_s.addEditImage),
               onTap: () => Navigator.pop(ctx, 'add'),
             ),
-            if (PlatformCaps.supportsCameraCapture)
+            if (PlatformCaps.supportsMobileCamera)
               ListTile(
                 leading: const Icon(Icons.photo_camera_outlined),
-                title: Text(
-                  PlatformCaps.supportsWechatCamera ? '拍自己的表情' : '拍照/选图并编辑',
-                ),
+                title: Text(_s.captureSticker),
                 onTap: () => Navigator.pop(ctx, 'camera'),
               ),
-            ListTile(
-              leading: const Icon(Icons.folder_zip_outlined),
-              title: const Text('导入表情包'),
-              onTap: () => Navigator.pop(ctx, 'import'),
-            ),
           ],
         ),
       ),
@@ -368,29 +385,20 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
     try {
       switch (action) {
         case 'add':
-          final added = await _import.pickAndAddCustomStickers();
+          final added = await _import.pickAndAddCustomStickers(context);
           if (!mounted) return;
           if (added.isNotEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('已添加 ${added.length} 个表情')),
+              SnackBar(content: Text(_s.addedCount(added.length))),
             );
             await _refresh();
           }
         case 'camera':
-          final sticker = await _camera.captureAndEdit(context);
+          final sticker = await _camera.captureAndEdit(context, strings: _s);
           if (!mounted) return;
           if (sticker != null) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('已保存拍照表情')),
-            );
-            await _refresh();
-          }
-        case 'import':
-          final pack = await _import.pickAndImportPack();
-          if (!mounted) return;
-          if (pack != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('已导入「${pack.name}」')),
+              SnackBar(content: Text(_s.savedCapture)),
             );
             await _refresh();
           }
@@ -398,7 +406,7 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('操作失败: $e')),
+        SnackBar(content: Text(_s.operationFailed(e))),
       );
     }
   }
@@ -411,13 +419,14 @@ class _PanelTab {
     this.isSearch = false,
   });
 
-  factory _PanelTab.system(StickerPack pack) =>
-      _PanelTab._(title: pack.name, pack: pack);
+  factory _PanelTab.system(String title, StickerPack pack) =>
+      _PanelTab._(title: title, pack: pack);
 
-  factory _PanelTab.pack(StickerPack pack) =>
-      _PanelTab._(title: pack.name, pack: pack);
+  factory _PanelTab.pack(String title, StickerPack pack) =>
+      _PanelTab._(title: title, pack: pack);
 
-  factory _PanelTab.search() => _PanelTab._(title: '搜索', isSearch: true);
+  factory _PanelTab.search(String title) =>
+      _PanelTab._(title: title, isSearch: true);
 
   final String title;
   final StickerPack? pack;

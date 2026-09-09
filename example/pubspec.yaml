@@ -23,6 +23,5 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/sample_pack.zip
     - assets/config.json
     - assets/config.example.json

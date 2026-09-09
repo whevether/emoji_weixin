@@ -1,12 +1,17 @@
 import 'dart:convert';
 
+import 'package:emoji_weixin/emoji_weixin.dart';
 import 'package:flutter/services.dart';
 
 /// Loads example app settings from [assets/config.json].
 class AppConfig {
-  const AppConfig({this.klipyApiKey = ''});
+  const AppConfig({
+    this.klipyApiKey = '',
+    this.locale = EmojiWeixinLocale.zh,
+  });
 
   final String klipyApiKey;
+  final EmojiWeixinLocale locale;
 
   bool get hasKlipy => klipyApiKey.trim().isNotEmpty;
 
@@ -21,11 +26,14 @@ class AppConfig {
         final key = (json['klipyApiKey'] as String?)?.trim() ??
             (json['giphyApiKey'] as String?)?.trim() ??
             '';
+        final locale = EmojiWeixinLocale.fromCode(
+          json['locale'] as String? ?? json['language'] as String?,
+        );
         // Ignore placeholder text from the example file.
         if (key.isEmpty || key.contains('填入')) {
-          continue;
+          return AppConfig(locale: locale);
         }
-        return AppConfig(klipyApiKey: key);
+        return AppConfig(klipyApiKey: key, locale: locale);
       } catch (_) {
         // try next
       }

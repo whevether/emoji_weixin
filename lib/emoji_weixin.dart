@@ -1,4 +1,6 @@
 export 'src/config/emoji_weixin_config.dart';
+export 'src/l10n/emoji_weixin_locale.dart';
+export 'src/l10n/emoji_weixin_strings.dart';
 export 'src/models/sticker.dart';
 export 'src/models/sticker_kind.dart';
 export 'src/models/sticker_pack.dart';

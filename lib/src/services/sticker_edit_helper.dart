@@ -1,35 +1,23 @@
 import 'dart:typed_data';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pro_image_editor/pro_image_editor.dart';
 
 import '../data/sticker_repository.dart';
+import '../l10n/emoji_weixin_strings.dart';
 import '../models/sticker.dart';
 import '../models/sticker_kind.dart';
 import '../platform/sticker_storage.dart';
 
-/// Shared pick → edit → save helpers (works on Web / desktop / mobile).
+/// Edit helpers. [pro_image_editor] does not preserve animated GIF — callers
+/// should skip editing for [StickerKind.gif] and save bytes as-is.
 abstract final class StickerEditHelper {
-  /// Pick an image via [FileType.image] (Web may offer camera), then edit.
-  static Future<Sticker?> pickImageEditAndSave(BuildContext context) async {
-    final file = await FilePicker.pickFile(
-      dialogTitle: '拍照或选择图片',
-      type: FileType.image,
-    );
-    if (file == null || !context.mounted) return null;
-
-    final bytes = await file.readAsBytes();
-    if (!context.mounted) return null;
-    return editBytesAndSave(context, bytes);
-  }
-
-  /// Open [ProImageEditor] on [bytes], then save into favorites.
-  static Future<Sticker?> editBytesAndSave(
+  /// Open [ProImageEditor]; returns edited bytes or `null` if cancelled.
+  static Future<Uint8List?> editBytes(
     BuildContext context,
     Uint8List bytes,
   ) async {
-    final edited = await Navigator.of(context).push<Uint8List>(
+    return Navigator.of(context).push<Uint8List>(
       MaterialPageRoute(
         builder: (ctx) => MaterialUiCompatibilityBridge( // ignore: deprecated_member_use
           child: ProImageEditor.memory(
@@ -43,6 +31,15 @@ abstract final class StickerEditHelper {
         ),
       ),
     );
+  }
+
+  /// Edit then save into favorites (static image / camera capture).
+  static Future<Sticker?> editBytesAndSave(
+    BuildContext context,
+    Uint8List bytes, {
+    required EmojiWeixinStrings strings,
+  }) async {
+    final edited = await editBytes(context, bytes);
     if (edited == null) return null;
 
     final repo = StickerRepository.instance;
@@ -54,7 +51,7 @@ abstract final class StickerEditHelper {
     );
 
     return repo.addStickerToCustom(
-      name: '拍照表情',
+      name: strings.photoStickerName,
       kind: StickerKind.staticImage,
       localPath: ref,
     );

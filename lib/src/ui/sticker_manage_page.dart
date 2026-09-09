@@ -1,12 +1,18 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../data/sticker_repository.dart';
+import '../l10n/emoji_weixin_strings.dart';
 import '../models/sticker_pack.dart';
 import '../models/sticker_source.dart';
 import '../widgets/sticker_renderer.dart';
 
 class StickerManagePage extends StatefulWidget {
-  const StickerManagePage({super.key});
+  const StickerManagePage({
+    super.key,
+    required this.strings,
+  });
+
+  final EmojiWeixinStrings strings;
 
   @override
   State<StickerManagePage> createState() => _StickerManagePageState();
@@ -15,6 +21,8 @@ class StickerManagePage extends StatefulWidget {
 class _StickerManagePageState extends State<StickerManagePage> {
   final _repo = StickerRepository.instance;
   late List<StickerPack> _packs;
+
+  EmojiWeixinStrings get _s => widget.strings;
 
   @override
   void initState() {
@@ -29,7 +37,7 @@ class _StickerManagePageState extends State<StickerManagePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('表情管理')),
+      appBar: AppBar(title: Text(_s.manageTitle)),
       body: ListView.builder(
         itemCount: _packs.length,
         itemBuilder: (context, index) {
@@ -43,19 +51,21 @@ class _StickerManagePageState extends State<StickerManagePage> {
                   : StickerRenderer(sticker: pack.stickers.first),
             ),
             title: Text(pack.name),
-            subtitle: Text('${pack.source.name} · ${pack.stickers.length} 个'),
+            subtitle: Text(
+              '${_s.sourceLabel(pack.source.name)} · ${_s.stickerCount(pack.stickers.length)}',
+            ),
             children: [
               if (pack.source != StickerSource.builtin)
                 ListTile(
                   leading: const Icon(Icons.edit_outlined),
-                  title: const Text('重命名'),
+                  title: Text(_s.rename),
                   onTap: () => _rename(pack),
                 ),
               if (pack.source == StickerSource.imported ||
                   pack.source == StickerSource.klipy)
                 ListTile(
                   leading: const Icon(Icons.delete_outline, color: Colors.red),
-                  title: const Text('删除表情包'),
+                  title: Text(_s.deletePack),
                   onTap: () async {
                     await _repo.deletePack(pack.id);
                     _reload();
@@ -93,20 +103,20 @@ class _StickerManagePageState extends State<StickerManagePage> {
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('重命名表情包'),
+        title: Text(_s.renamePack),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(hintText: '名称'),
+          decoration: InputDecoration(hintText: _s.nameHint),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
+            child: Text(_s.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('确定'),
+            child: Text(_s.confirm),
           ),
         ],
       ),

@@ -6,8 +6,6 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>用于拍摄自定义表情</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>拍摄表情时可能需要麦克风权限</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>用于选择和导入表情图片</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

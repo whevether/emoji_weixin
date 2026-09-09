@@ -1,14 +1,10 @@
-import 'dart:typed_data';
-
 import 'package:material_ui/material_ui.dart';
-import 'package:lottie/lottie.dart';
 
 import '../models/sticker.dart';
 import '../models/sticker_kind.dart';
-import '../platform/sticker_storage.dart';
 import 'local_image.dart';
 
-/// Renders PNG/JPG/WebP, GIF, Lottie, or unicode emoji stickers.
+/// Renders PNG/JPG/WebP, GIF, or unicode emoji stickers.
 class StickerRenderer extends StatelessWidget {
   const StickerRenderer({
     super.key,
@@ -38,10 +34,6 @@ class StickerRenderer extends StatelessWidget {
       );
     }
 
-    if (sticker.kind == StickerKind.lottie) {
-      return _buildLottie();
-    }
-
     return _buildImage();
   }
 
@@ -69,63 +61,6 @@ class StickerRenderer extends StatelessWidget {
     }
     if (sticker.networkUrl != null) {
       return Image.network(
-        sticker.networkUrl!,
-        width: w,
-        height: h,
-        fit: fit,
-        errorBuilder: _error,
-      );
-    }
-    return _placeholder();
-  }
-
-  Widget _buildLottie() {
-    final w = width;
-    final h = height;
-    if (sticker.localPath != null) {
-      final local = sticker.localPath!;
-      return FutureBuilder<Uint8List?>(
-        future: StickerStorage.readBytes(local),
-        builder: (context, snap) {
-          final bytes = snap.data;
-          if (bytes == null) {
-            if (snap.connectionState != ConnectionState.done) {
-              return SizedBox(
-                width: w,
-                height: h,
-                child: const Center(
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              );
-            }
-            return _placeholder();
-          }
-          final lower = local.toLowerCase();
-          final isZipLottie =
-              lower.endsWith('.lottie') || lower.contains('.lottie');
-          return Lottie.memory(
-            bytes,
-            width: w,
-            height: h,
-            fit: fit,
-            decoder: isZipLottie ? LottieComposition.decodeZip : null,
-            errorBuilder: _error,
-          );
-        },
-      );
-    }
-    if (sticker.assetPath != null) {
-      return Lottie.asset(
-        sticker.assetPath!,
-        package: 'emoji_weixin',
-        width: w,
-        height: h,
-        fit: fit,
-        errorBuilder: _error,
-      );
-    }
-    if (sticker.networkUrl != null) {
-      return Lottie.network(
         sticker.networkUrl!,
         width: w,
         height: h,

@@ -1,9 +1,11 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../l10n/emoji_weixin_strings.dart';
 import '../models/sticker.dart';
-import 'sticker_edit_helper.dart';
 
-/// Web (and non-IO) path: [FileType.image] may open camera on mobile browsers.
-Future<Sticker?> captureAndEdit(BuildContext context) {
-  return StickerEditHelper.pickImageEditAndSave(context);
-}
+/// Web / non-IO: no system camera entry in the add menu.
+Future<Sticker?> captureAndEdit(
+  BuildContext context, {
+  required EmojiWeixinStrings strings,
+}) async =>
+    null;

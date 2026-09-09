@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../klipy/klipy_client.dart';
+import '../l10n/emoji_weixin_strings.dart';
 import '../models/sticker.dart';
 import '../models/sticker_kind.dart';
 
@@ -11,10 +12,12 @@ class KlipySearchTab extends StatefulWidget {
   const KlipySearchTab({
     super.key,
     required this.client,
+    required this.strings,
     required this.onSelected,
   });
 
   final KlipyClient client;
+  final EmojiWeixinStrings strings;
   final void Function(Sticker sticker) onSelected;
 
   @override
@@ -123,7 +126,7 @@ class _KlipySearchTabState extends State<KlipySearchTab> {
                   controller: _controller,
                   onChanged: _onQueryChanged,
                   decoration: InputDecoration(
-                    hintText: '搜索 Klipy 表情',
+                    hintText: widget.strings.searchHint,
                     isDense: true,
                     prefixIcon: const Icon(Icons.search, size: 20),
                     filled: true,
@@ -138,9 +141,15 @@ class _KlipySearchTabState extends State<KlipySearchTab> {
               ),
               const SizedBox(width: 8),
               SegmentedButton<bool>(
-                segments: const [
-                  ButtonSegment(value: true, label: Text('贴纸')),
-                  ButtonSegment(value: false, label: Text('GIF')),
+                segments: [
+                  ButtonSegment(
+                    value: true,
+                    label: Text(widget.strings.stickers),
+                  ),
+                  ButtonSegment(
+                    value: false,
+                    label: Text(widget.strings.gifs),
+                  ),
                 ],
                 selected: {_stickersMode},
                 onSelectionChanged: (s) {
@@ -160,7 +169,7 @@ class _KlipySearchTabState extends State<KlipySearchTab> {
           Padding(
             padding: const EdgeInsets.all(12),
             child: Text(
-              '搜索失败（请检查 Klipy API Key）\n$_error',
+              widget.strings.searchFailed(_error!),
               style: const TextStyle(color: Colors.redAccent, fontSize: 12),
             ),
           ),
