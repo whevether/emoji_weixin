@@ -6,6 +6,10 @@
 
 ## Unreleased
 
+## 0.3.1
+
+* 使用 [`extended_image`](https://pub.dev/packages/extended_image) `^10.1.0` 替代 `cached_network_image`，用于 KLIPY 搜索预览图缓存。
+
 ## 0.3.0
 
 * 使用 [`image_picker`](https://pub.dev/packages/image_picker) `^1.2.3` 替代 `wechat_camera_picker` 与 `file_picker`；移除 `archive`、`lottie`。

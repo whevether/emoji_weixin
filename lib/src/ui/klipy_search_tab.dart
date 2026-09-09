@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:extended_image/extended_image.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../klipy/klipy_client.dart';
@@ -189,21 +189,31 @@ class _KlipySearchTabState extends State<KlipySearchTab> {
                 borderRadius: BorderRadius.circular(8),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: CachedNetworkImage(
-                    imageUrl: item.previewUrl,
+                  child: ExtendedImage.network(
+                    item.previewUrl,
                     fit: BoxFit.cover,
-                    placeholder: (context, url) => const ColoredBox(
-                      color: Color(0xFFEDEDED),
-                      child: Center(
-                        child: SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      ),
-                    ),
-                    errorWidget: (context, url, error) =>
-                        const Icon(Icons.broken_image_outlined),
+                    cache: true,
+                    loadStateChanged: (state) {
+                      switch (state.extendedImageLoadState) {
+                        case LoadState.loading:
+                          return const ColoredBox(
+                            color: Color(0xFFEDEDED),
+                            child: Center(
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
+                          );
+                        case LoadState.failed:
+                          return const Icon(Icons.broken_image_outlined);
+                        case LoadState.completed:
+                          return null;
+                      }
+                    },
                   ),
                 ),
               );

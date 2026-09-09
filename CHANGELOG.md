@@ -6,6 +6,10 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## 0.3.1
+
+* Replace `cached_network_image` with [`extended_image`](https://pub.dev/packages/extended_image) `^10.1.0` for KLIPY search preview caching.
+
 ## 0.3.0
 
 * Replace `wechat_camera_picker` and `file_picker` with [`image_picker`](https://pub.dev/packages/image_picker) `^1.2.3`; remove `archive` and `lottie`.
