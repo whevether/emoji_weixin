@@ -4,11 +4,14 @@ import 'emoji_weixin_locale.dart';
 class EmojiWeixinStrings {
   const EmojiWeixinStrings._(this.locale);
 
+  /// Locale these strings were resolved for.
   final EmojiWeixinLocale locale;
 
+  /// Returns strings for [locale].
   static EmojiWeixinStrings of(EmojiWeixinLocale locale) =>
       EmojiWeixinStrings._(locale);
 
+  /// Tooltip for the add menu button.
   String get addTooltip => _t(
         zh: '添加',
         en: 'Add',
@@ -19,6 +22,7 @@ class EmojiWeixinStrings {
         hi: 'जोड़ें',
       );
 
+  /// Tooltip for the sticker manager button.
   String get manageTooltip => _t(
         zh: '管理',
         en: 'Manage',
@@ -29,6 +33,7 @@ class EmojiWeixinStrings {
         hi: 'प्रबंधित करें',
       );
 
+  /// Menu label: add / edit image from gallery.
   String get addEditImage => _t(
         zh: '添加/编辑图片',
         en: 'Add / edit image',
@@ -39,6 +44,7 @@ class EmojiWeixinStrings {
         hi: 'चित्र जोड़ें / संपादित करें',
       );
 
+  /// Menu label: capture a photo sticker (mobile).
   String get captureSticker => _t(
         zh: '拍自己的表情',
         en: 'Take a photo sticker',
@@ -49,6 +55,7 @@ class EmojiWeixinStrings {
         hi: 'फ़ोटो स्टिकर लें',
       );
 
+  /// Snackbar after adding [n] stickers from gallery.
   String addedCount(int n) => _t(
         zh: '已添加 $n 个表情',
         en: 'Added $n sticker(s)',
@@ -59,6 +66,7 @@ class EmojiWeixinStrings {
         hi: '$n स्टिकर जोड़े गए',
       );
 
+  /// Snackbar after a successful camera capture save.
   String get savedCapture => _t(
         zh: '已保存拍照表情',
         en: 'Photo sticker saved',
@@ -69,6 +77,7 @@ class EmojiWeixinStrings {
         hi: 'फ़ोटो स्टिकर सहेजा गया',
       );
 
+  /// Generic operation failure message including [error].
   String operationFailed(Object error) => _t(
         zh: '操作失败: $error',
         en: 'Failed: $error',
@@ -79,6 +88,7 @@ class EmojiWeixinStrings {
         hi: 'विफल: $error',
       );
 
+  /// Panel load failure message including [error].
   String loadFailed(Object error) => _t(
         zh: '加载失败: $error',
         en: 'Load failed: $error',
@@ -89,6 +99,7 @@ class EmojiWeixinStrings {
         hi: 'लोड विफल: $error',
       );
 
+  /// Section title for recently used stickers.
   String get recentUsed => _t(
         zh: '最近使用',
         en: 'Recently used',
@@ -99,6 +110,7 @@ class EmojiWeixinStrings {
         hi: 'हाल ही में उपयोग',
       );
 
+  /// Section title for the full unicode emoji grid.
   String get allEmoji => _t(
         zh: '所有表情',
         en: 'All emoji',
@@ -109,6 +121,7 @@ class EmojiWeixinStrings {
         hi: 'सभी इमोजी',
       );
 
+  /// Search tab label.
   String get search => _t(
         zh: '搜索',
         en: 'Search',
@@ -119,6 +132,7 @@ class EmojiWeixinStrings {
         hi: 'खोजें',
       );
 
+  /// Default emoji pack tab label.
   String get emojiPack => _t(
         zh: '表情',
         en: 'Emoji',
@@ -129,6 +143,7 @@ class EmojiWeixinStrings {
         hi: 'इमोजी',
       );
 
+  /// Douyin sticker pack display name.
   String get douyinPack => _t(
         zh: '抖音表情',
         en: 'Douyin stickers',
@@ -139,6 +154,7 @@ class EmojiWeixinStrings {
         hi: 'Douyin स्टिकर',
       );
 
+  /// Sticker manager page title.
   String get manageTitle => _t(
         zh: '表情管理',
         en: 'Sticker manager',
@@ -146,9 +162,10 @@ class EmojiWeixinStrings {
         id: 'Kelola stiker',
         fil: 'Tagapamahala ng sticker',
         ms: 'Pengurus stiker',
-        hi: 'स्टिकर प्रबंधन',
+        hi: 'स्टिकर प्रबंधक',
       );
 
+  /// Rename action label.
   String get rename => _t(
         zh: '重命名',
         en: 'Rename',
@@ -159,6 +176,7 @@ class EmojiWeixinStrings {
         hi: 'नाम बदलें',
       );
 
+  /// Delete pack action label.
   String get deletePack => _t(
         zh: '删除表情包',
         en: 'Delete pack',
@@ -169,6 +187,7 @@ class EmojiWeixinStrings {
         hi: 'पैक हटाएँ',
       );
 
+  /// Rename pack dialog title.
   String get renamePack => _t(
         zh: '重命名表情包',
         en: 'Rename pack',
@@ -179,6 +198,7 @@ class EmojiWeixinStrings {
         hi: 'पैक का नाम बदलें',
       );
 
+  /// Name text field hint.
   String get nameHint => _t(
         zh: '名称',
         en: 'Name',
@@ -189,6 +209,7 @@ class EmojiWeixinStrings {
         hi: 'नाम',
       );
 
+  /// Cancel button label.
   String get cancel => _t(
         zh: '取消',
         en: 'Cancel',
@@ -199,6 +220,7 @@ class EmojiWeixinStrings {
         hi: 'रद्द करें',
       );
 
+  /// Confirm / OK button label.
   String get confirm => _t(
         zh: '确定',
         en: 'OK',
@@ -209,6 +231,7 @@ class EmojiWeixinStrings {
         hi: 'ठीक है',
       );
 
+  /// Short count label for [n] stickers in a pack.
   String stickerCount(int n) => _t(
         zh: '$n 个',
         en: '$n items',
@@ -219,6 +242,7 @@ class EmojiWeixinStrings {
         hi: '$n आइटम',
       );
 
+  /// Klipy search field hint.
   String get searchHint => _t(
         zh: '搜索 Klipy 表情',
         en: 'Search Klipy stickers',
@@ -229,6 +253,7 @@ class EmojiWeixinStrings {
         hi: 'Klipy स्टिकर खोजें',
       );
 
+  /// Search filter: stickers.
   String get stickers => _t(
         zh: '贴纸',
         en: 'Stickers',
@@ -239,6 +264,7 @@ class EmojiWeixinStrings {
         hi: 'स्टिकर',
       );
 
+  /// Search filter: GIFs.
   String get gifs => _t(
         zh: 'GIF',
         en: 'GIF',
@@ -249,6 +275,7 @@ class EmojiWeixinStrings {
         hi: 'GIF',
       );
 
+  /// Klipy search failure message including [error].
   String searchFailed(Object error) => _t(
         zh: '搜索失败（请检查 Klipy API Key）\n$error',
         en: 'Search failed (check Klipy API key)\n$error',
@@ -259,6 +286,7 @@ class EmojiWeixinStrings {
         hi: 'खोज विफल (Klipy API कुंजी जाँचें)\n$error',
       );
 
+  /// Default name for a camera-captured sticker.
   String get photoStickerName => _t(
         zh: '拍照表情',
         en: 'Photo sticker',
@@ -269,6 +297,7 @@ class EmojiWeixinStrings {
         hi: 'फ़ोटो स्टिकर',
       );
 
+  /// Human-readable label for a sticker source name (`builtin`, `custom`, …).
   String sourceLabel(String sourceName) => switch (sourceName) {
         'builtin' => _t(
             zh: '内置',

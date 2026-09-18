@@ -4,9 +4,12 @@ import '../models/sticker_kind.dart';
 import '../models/sticker_pack.dart';
 import '../models/sticker_source.dart';
 
+/// Built-in unicode emoji catalog used by the emoji tab.
 class BuiltinEmojiCatalog {
+  /// Stable pack id for the system unicode emoji pack.
   static const packId = 'system_emoji';
 
+  /// Builds the unicode emoji [StickerPack].
   static StickerPack pack() {
     final stickers = [
       for (var i = 0; i < kBuiltinUnicodeEmojis.length; i++)

@@ -8,7 +8,9 @@ import '../l10n/emoji_weixin_strings.dart';
 import '../models/sticker.dart';
 import '../models/sticker_kind.dart';
 
+/// Klipy search / trending tab for the sticker panel.
 class KlipySearchTab extends StatefulWidget {
+  /// Creates the search tab.
   const KlipySearchTab({
     super.key,
     required this.client,
@@ -16,10 +18,16 @@ class KlipySearchTab extends StatefulWidget {
     required this.onSelected,
   });
 
+  /// Klipy HTTP client.
   final KlipyClient client;
+
+  /// Localized UI strings.
   final EmojiWeixinStrings strings;
+
+  /// Called when the user picks a search result.
   final void Function(Sticker sticker) onSelected;
 
+  /// Creates the mutable state for this tab.
   @override
   State<KlipySearchTab> createState() => _KlipySearchTabState();
 }

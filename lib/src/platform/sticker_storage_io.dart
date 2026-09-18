@@ -4,9 +4,11 @@ import 'dart:typed_data';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+/// IO implementation of sticker byte storage (mobile / desktop).
 class StickerStorageImpl {
   static String? _root;
 
+  /// Ensures the app documents storage root exists.
   static Future<void> init() async {
     if (_root != null) return;
     final docs = await getApplicationDocumentsDirectory();
@@ -22,6 +24,7 @@ class StickerStorageImpl {
     return root;
   }
 
+  /// Writes [bytes] under the pack directory and returns the file path.
   static Future<String> saveBytes({
     required String packId,
     required String filename,
@@ -34,6 +37,7 @@ class StickerStorageImpl {
     return file.path;
   }
 
+  /// Reads a local file path; returns `null` for `hive:` refs or missing files.
   static Future<Uint8List?> readBytes(String ref) async {
     if (ref.startsWith('hive:')) return null;
     final file = File(ref);
@@ -41,6 +45,7 @@ class StickerStorageImpl {
     return file.readAsBytes();
   }
 
+  /// Deletes the on-disk directory for [packId].
   static Future<void> deletePackDir(String packId) async {
     final dir = Directory(p.join(_ensureRoot, 'packs', packId));
     if (await dir.exists()) {
@@ -48,5 +53,6 @@ class StickerStorageImpl {
     }
   }
 
+  /// Absolute storage root, or empty before [init].
   static String rootHint() => _root ?? '';
 }

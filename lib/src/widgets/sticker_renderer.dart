@@ -6,6 +6,7 @@ import 'local_image.dart';
 
 /// Renders PNG/JPG/WebP, GIF, or unicode emoji stickers.
 class StickerRenderer extends StatelessWidget {
+  /// Creates a renderer for [sticker].
   const StickerRenderer({
     super.key,
     required this.sticker,
@@ -14,11 +15,19 @@ class StickerRenderer extends StatelessWidget {
     this.fit = BoxFit.contain,
   });
 
+  /// Sticker to display.
   final Sticker sticker;
+
+  /// Optional layout width.
   final double? width;
+
+  /// Optional layout height.
   final double? height;
+
+  /// How to inscribe the image into the layout box.
   final BoxFit fit;
 
+  /// Builds the sticker preview widget.
   @override
   Widget build(BuildContext context) {
     if (sticker.kind == StickerKind.unicode && sticker.unicode != null) {

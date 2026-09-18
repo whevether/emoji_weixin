@@ -6,6 +6,12 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## 0.3.2
+
+* Document the full public API (dartdoc) to meet pub.dev documentation scoring.
+* Fix Flutter WebAssembly compatibility: stop defaulting `LocalImage` to a `dart:io` implementation; route WASM/web through the non-IO path.
+* Use Hive web sticker storage on WASM via `dart.library.js_interop` (same as traditional web).
+
 ## 0.3.1
 
 * Replace `cached_network_image` with [`extended_image`](https://pub.dev/packages/extended_image) `^10.1.0` for KLIPY search preview caching.

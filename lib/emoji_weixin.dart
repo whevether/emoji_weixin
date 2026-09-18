@@ -1,3 +1,6 @@
+/// WeChat-style emoji/sticker panel for Flutter with Klipy search and custom stickers.
+library;
+
 export 'src/config/emoji_weixin_config.dart';
 export 'src/l10n/emoji_weixin_locale.dart';
 export 'src/l10n/emoji_weixin_strings.dart';

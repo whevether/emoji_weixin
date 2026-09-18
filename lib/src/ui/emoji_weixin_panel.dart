@@ -16,10 +16,12 @@ import '../widgets/sticker_renderer.dart';
 import 'sticker_manage_page.dart';
 import 'klipy_search_tab.dart';
 
+/// Called when the user picks a sticker from [EmojiWeixinPanel].
 typedef StickerSelectedCallback = void Function(Sticker sticker);
 
 /// WeChat-style bottom emoji/sticker panel.
 class EmojiWeixinPanel extends StatefulWidget {
+  /// Creates the sticker panel.
   const EmojiWeixinPanel({
     super.key,
     required this.onStickerSelected,
@@ -27,12 +29,16 @@ class EmojiWeixinPanel extends StatefulWidget {
     this.height = 320,
   });
 
+  /// Invoked when a sticker is selected.
   final StickerSelectedCallback onStickerSelected;
 
   /// Panel config (e.g. Klipy key, locale). Falls back to [EmojiWeixinConfig.global].
   final EmojiWeixinConfig? config;
+
+  /// Panel height in logical pixels.
   final double height;
 
+  /// Creates the mutable state for this panel.
   @override
   State<EmojiWeixinPanel> createState() => _EmojiWeixinPanelState();
 }

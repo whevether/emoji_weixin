@@ -6,14 +6,18 @@ import '../models/sticker_pack.dart';
 import '../models/sticker_source.dart';
 import '../widgets/sticker_renderer.dart';
 
+/// Full-screen page for renaming / deleting sticker packs.
 class StickerManagePage extends StatefulWidget {
+  /// Creates the manager page with localized [strings].
   const StickerManagePage({
     super.key,
     required this.strings,
   });
 
+  /// UI copy for this page.
   final EmojiWeixinStrings strings;
 
+  /// Creates the mutable state for this page.
   @override
   State<StickerManagePage> createState() => _StickerManagePageState();
 }

@@ -38,5 +38,6 @@ enum EmojiWeixinLocale {
     };
   }
 
+  /// BCP 47-style primary language subtag for this locale (e.g. `zh`, `en`).
   String get languageCode => name;
 }

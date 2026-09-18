@@ -12,12 +12,14 @@ import '../models/sticker_source.dart';
 class DouyinStickerCatalog {
   DouyinStickerCatalog._();
 
+  /// Stable pack id for the Douyin asset pack.
   static const packId = 'builtin_douyin';
   static const _infoAsset =
       'packages/emoji_weixin/assets/stickers/douyin/info.json';
   static const _infoAssetFallback = 'assets/stickers/douyin/info.json';
   static const _staticPrefix = 'assets/stickers/douyin/static/';
 
+  /// Loads the Douyin pack from package assets (skips missing files).
   static Future<StickerPack> loadPack() async {
     final raw = await _loadInfoJson();
     final json = jsonDecode(raw) as Map<String, dynamic>;

@@ -7,7 +7,9 @@ import '../models/sticker_kind.dart';
 import '../platform/sticker_storage.dart';
 import 'klipy_client.dart';
 
+/// Downloads Klipy / network stickers into the favorites pack.
 class KlipyStickerService {
+  /// Creates a service; [client] is optional for search-related callers.
   KlipyStickerService({
     this.client,
     StickerRepository? repository,

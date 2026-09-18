@@ -10,7 +10,9 @@ import '../models/sticker_kind.dart';
 import '../platform/sticker_storage.dart';
 import 'sticker_edit_helper.dart';
 
+/// Imports gallery images into the custom favorites pack.
 class StickerImportService {
+  /// Creates an import service backed by [StickerRepository.instance] by default.
   StickerImportService({StickerRepository? repository})
       : _repo = repository ?? StickerRepository.instance;
 

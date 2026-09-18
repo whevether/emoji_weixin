@@ -1,6 +1,8 @@
 import 'sticker_kind.dart';
 
+/// A single sticker (image, GIF, or unicode emoji).
 class Sticker {
+  /// Creates a sticker with the given identity and media references.
   const Sticker({
     required this.id,
     required this.packId,
@@ -13,16 +15,34 @@ class Sticker {
     this.createdAt,
   });
 
+  /// Unique sticker id within the app.
   final String id;
+
+  /// Id of the [StickerPack] this sticker belongs to.
   final String packId;
+
+  /// Display name shown in the UI.
   final String name;
+
+  /// How this sticker is encoded / rendered.
   final StickerKind kind;
+
+  /// Local filesystem path or `hive:` blob ref for custom stickers.
   final String? localPath;
+
+  /// Flutter asset path for built-in pack stickers.
   final String? assetPath;
+
+  /// Remote URL (e.g. Klipy original), if any.
   final String? networkUrl;
+
+  /// Unicode code point string when [kind] is [StickerKind.unicode].
   final String? unicode;
+
+  /// When the sticker was added; may be null for built-ins.
   final DateTime? createdAt;
 
+  /// Returns a copy with the given fields replaced.
   Sticker copyWith({
     String? id,
     String? packId,
@@ -47,6 +67,7 @@ class Sticker {
     );
   }
 
+  /// Serializes this sticker to a JSON-compatible map.
   Map<String, dynamic> toJson() => {
         'id': id,
         'packId': packId,
@@ -59,6 +80,7 @@ class Sticker {
         'createdAt': createdAt?.toIso8601String(),
       };
 
+  /// Deserializes a sticker from [json].
   factory Sticker.fromJson(Map<String, dynamic> json) {
     return Sticker(
       id: json['id'] as String,

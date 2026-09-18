@@ -2,7 +2,9 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+/// A single Klipy search / trending result.
 class KlipyGifItem {
+  /// Creates a Klipy media item.
   const KlipyGifItem({
     required this.id,
     required this.title,
@@ -11,15 +13,25 @@ class KlipyGifItem {
     required this.isSticker,
   });
 
+  /// Provider id (or slug fallback).
   final String id;
+
+  /// Display title from Klipy.
   final String title;
+
+  /// Smaller preview URL for grid thumbnails.
   final String previewUrl;
+
+  /// Full-size download URL.
   final String originalUrl;
+
+  /// `true` for sticker endpoints; `false` for GIF endpoints.
   final bool isSticker;
 }
 
 /// Thin client for [KLIPY native API](https://docs.klipy.com/).
 class KlipyClient {
+  /// Creates a client with the given [apiKey].
   KlipyClient({
     required this.apiKey,
     this.locale = 'cn',
@@ -27,13 +39,19 @@ class KlipyClient {
     http.Client? httpClient,
   }) : _http = httpClient ?? http.Client();
 
+  /// Klipy API key embedded in request paths.
   final String apiKey;
+
+  /// Klipy locale query param (e.g. `cn`, `en`).
   final String locale;
+
+  /// Klipy content filter level (e.g. `medium`).
   final String contentFilter;
   final http.Client _http;
 
   static const _base = 'https://api.klipy.com/api/v1';
 
+  /// Searches stickers for [query].
   Future<List<KlipyGifItem>> searchStickers({
     required String query,
     int page = 1,
@@ -53,6 +71,7 @@ class KlipyClient {
     );
   }
 
+  /// Searches GIFs for [query].
   Future<List<KlipyGifItem>> searchGifs({
     required String query,
     int page = 1,
@@ -72,6 +91,7 @@ class KlipyClient {
     );
   }
 
+  /// Returns trending stickers.
   Future<List<KlipyGifItem>> trendingStickers({
     int page = 1,
     int perPage = 24,
@@ -89,6 +109,7 @@ class KlipyClient {
     );
   }
 
+  /// Returns trending GIFs.
   Future<List<KlipyGifItem>> trendingGifs({
     int page = 1,
     int perPage = 24,
@@ -190,5 +211,6 @@ class KlipyClient {
     return perPage;
   }
 
+  /// Closes the underlying HTTP client.
   void close() => _http.close();
 }

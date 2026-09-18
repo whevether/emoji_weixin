@@ -10,9 +10,11 @@ import '../models/sticker_source.dart';
 import '../platform/sticker_storage.dart';
 import 'douyin_sticker_catalog.dart';
 
+/// Persistent sticker packs, favorites, and recently-used history (Hive-backed).
 class StickerRepository {
   StickerRepository._();
 
+  /// Shared singleton used by the panel and services.
   static final StickerRepository instance = StickerRepository._();
 
   static const _boxName = 'emoji_weixin_packs';
@@ -24,6 +26,7 @@ class StickerRepository {
   final _uuid = const Uuid();
   Box<String>? _box;
 
+  /// Opens Hive / storage and ensures system packs exist.
   Future<void> init() async {
     if (_box != null) return;
     await Hive.initFlutter();
@@ -60,6 +63,7 @@ class StickerRepository {
     );
   }
 
+  /// Returns the recently used stickers list (most recent first).
   List<Sticker> getRecentStickers() {
     final raw = _box!.get(_recentKey);
     if (raw == null || raw.isEmpty) return const [];
@@ -73,6 +77,7 @@ class StickerRepository {
     }
   }
 
+  /// Records [sticker] as most recently used (capped list).
   Future<void> recordRecent(Sticker sticker) async {
     final next = <Sticker>[sticker];
     for (final item in getRecentStickers()) {
@@ -86,6 +91,7 @@ class StickerRepository {
     );
   }
 
+  /// All user-visible packs, sorted by source then name.
   List<StickerPack> getAllPacks() {
     final packs = _box!.values
         .map((raw) {
@@ -118,6 +124,7 @@ class StickerRepository {
     return packs;
   }
 
+  /// Looks up a pack by [id], or `null` if missing / corrupt.
   StickerPack? getPack(String id) {
     final raw = _box!.get(id);
     if (raw == null) return null;
@@ -128,6 +135,7 @@ class StickerRepository {
     }
   }
 
+  /// The user favorites pack (`custom`).
   StickerPack get customPack =>
       getPack(_customPackId) ??
       const StickerPack(
@@ -136,10 +144,12 @@ class StickerRepository {
         source: StickerSource.custom,
       );
 
+  /// Persists [pack] to Hive.
   Future<void> savePack(StickerPack pack) async {
     await _box!.put(pack.id, jsonEncode(pack.toJson()));
   }
 
+  /// Deletes a non-system pack and its stored media.
   Future<void> deletePack(String packId) async {
     if (packId == _customPackId || packId == DouyinStickerCatalog.packId) {
       throw ArgumentError('Cannot delete system pack: $packId');
@@ -148,6 +158,7 @@ class StickerRepository {
     await _box!.delete(packId);
   }
 
+  /// Appends a sticker to the favorites pack and returns it.
   Future<Sticker> addStickerToCustom({
     required String name,
     required StickerKind kind,
@@ -172,6 +183,7 @@ class StickerRepository {
     return sticker;
   }
 
+  /// Removes a sticker from [packId] by [stickerId].
   Future<void> removeSticker(String packId, String stickerId) async {
     final pack = getPack(packId);
     if (pack == null) return;
@@ -179,6 +191,7 @@ class StickerRepository {
     await savePack(pack.copyWith(stickers: next));
   }
 
+  /// Renames a pack and returns the updated pack.
   Future<StickerPack> renamePack(String packId, String name) async {
     final pack = getPack(packId);
     if (pack == null) {
@@ -189,5 +202,6 @@ class StickerRepository {
     return updated;
   }
 
+  /// Generates a new UUID string for sticker / file ids.
   String newId() => _uuid.v4();
 }

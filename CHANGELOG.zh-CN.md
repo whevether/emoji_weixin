@@ -6,6 +6,12 @@
 
 ## Unreleased
 
+## 0.3.2
+
+* 全量补充公开 API 的 dartdoc 注释，以满足 pub.dev 文档评分要求。
+* 修复 Flutter WebAssembly 兼容性：`LocalImage` 不再默认落入含 `dart:io` 的实现，WASM/web 走非 IO 路径。
+* WASM 通过 `dart.library.js_interop` 使用与传统 web 相同的 Hive 表情存储。
+
 ## 0.3.1
 
 * 使用 [`extended_image`](https://pub.dev/packages/extended_image) `^10.1.0` 替代 `cached_network_image`，用于 KLIPY 搜索预览图缓存。

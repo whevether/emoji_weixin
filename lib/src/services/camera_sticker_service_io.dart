@@ -6,6 +6,7 @@ import '../models/sticker.dart';
 import '../platform/platform_caps.dart';
 import 'sticker_edit_helper.dart';
 
+/// IO capture: system camera → ProImageEditor → favorites pack.
 Future<Sticker?> captureAndEdit(
   BuildContext context, {
   required EmojiWeixinStrings strings,
