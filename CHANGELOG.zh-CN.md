@@ -6,7 +6,7 @@
 
 ## Unreleased
 
-## 0.3.2
+## 0.3.3
 
 * 全量补充公开 API 的 dartdoc 注释，以满足 pub.dev 文档评分要求。
 * 修复 Flutter WebAssembly 兼容性：`LocalImage` 不再默认落入含 `dart:io` 的实现，WASM/web 走非 IO 路径。

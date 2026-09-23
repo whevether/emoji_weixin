@@ -6,7 +6,7 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
-## 0.3.2
+## 0.3.3
 
 * Document the full public API (dartdoc) to meet pub.dev documentation scoring.
 * Fix Flutter WebAssembly compatibility: stop defaulting `LocalImage` to a `dart:io` implementation; route WASM/web through the non-IO path.

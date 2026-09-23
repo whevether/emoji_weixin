@@ -1,6 +1,6 @@
 name: emoji_weixin
 description: WeChat-style emoji/sticker panel for Flutter with Klipy search, custom stickers, camera capture, and multi-language UI.
-version: 0.3.2
+version: 0.3.3
 homepage: https://github.com/whevether/emoji_weixin
 repository: https://github.com/whevether/emoji_weixin
 
