@@ -8,9 +8,9 @@ import 'sticker_storage_stub.dart'
 /// Cross-platform sticker byte storage.
 ///
 /// - IO (mobile/desktop): writes files under app documents
-/// - Web / WASM: stores bytes in a Hive box, returns `hive:<key>` refs
+/// - Web / WASM: stores bytes in ToStore, returns `hive:<key>` refs
 abstract final class StickerStorage {
-  /// Initializes platform storage (documents dir or Hive box).
+  /// Initializes platform storage (documents dir or ToStore).
   static Future<void> init() => impl.StickerStorageImpl.init();
 
   /// Persist [bytes] and return a platform-specific reference path.
@@ -29,7 +29,7 @@ abstract final class StickerStorage {
   static Future<Uint8List?> readBytes(String ref) =>
       impl.StickerStorageImpl.readBytes(ref);
 
-  /// Whether [ref] points at a Hive blob (`hive:` prefix).
+  /// Whether [ref] points at a ToStore blob (`hive:` prefix).
   static bool isBlobRef(String? ref) =>
       ref != null && ref.startsWith('hive:');
 

@@ -1,25 +1,17 @@
 import 'dart:typed_data';
 
-import 'package:hive_ce/hive_ce.dart';
+import 'package:tostore/tostore.dart';
 
-/// Web / WASM sticker storage backed by a Hive blob box.
+import '../data/emoji_store.dart';
+
+/// Web / WASM sticker storage backed by a ToStore blob table.
 class StickerStorageImpl {
-  static const _boxName = 'emoji_weixin_blobs';
-  static Box<Uint8List>? _box;
-
-  /// Opens the Hive blob box.
+  /// Opens the shared ToStore database.
   static Future<void> init() async {
-    if (_box != null) return;
-    _box = await Hive.openBox<Uint8List>(_boxName);
+    await EmojiStore.instance.open();
   }
 
-  static Box<Uint8List> get _ensureBox {
-    final box = _box;
-    if (box == null) {
-      throw StateError('StickerStorage not initialized');
-    }
-    return box;
-  }
+  static ToStore get _db => EmojiStore.instance.db;
 
   /// Stores [bytes] and returns a `hive:<packId>/<filename>` ref.
   static Future<String> saveBytes({
@@ -28,7 +20,10 @@ class StickerStorageImpl {
     required Uint8List bytes,
   }) async {
     final key = '$packId/$filename';
-    await _ensureBox.put(key, bytes);
+    await _db.upsert(EmojiStore.blobTable, {
+      'key': key,
+      'bytes': bytes,
+    });
     return 'hive:$key';
   }
 
@@ -36,21 +31,42 @@ class StickerStorageImpl {
   static Future<Uint8List?> readBytes(String ref) async {
     if (!ref.startsWith('hive:')) return null;
     final key = ref.substring('hive:'.length);
-    return _ensureBox.get(key);
+    final row = await _db
+        .query(EmojiStore.blobTable)
+        .whereEqual('key', key)
+        .first();
+    return _asBytes(row?['bytes']);
   }
 
-  /// Deletes all Hive keys for [packId].
+  /// Deletes blob rows whose key starts with [packId]/.
   static Future<void> deletePackDir(String packId) async {
-    final box = _ensureBox;
-    final keys = box.keys
-        .whereType<String>()
-        .where((k) => k.startsWith('$packId/'))
-        .toList();
-    for (final key in keys) {
-      await box.delete(key);
+    final prefix = '$packId/';
+    var page = await _db
+        .query(EmojiStore.blobTable)
+        .where('key', 'LIKE', '$prefix%')
+        .limit(200);
+    while (true) {
+      final keys = <String>[];
+      for (final row in page.data) {
+        final key = row['key'];
+        if (key is String && key.startsWith(prefix)) keys.add(key);
+      }
+      for (final key in keys) {
+        await _db.delete(EmojiStore.blobTable).where('key', '=', key);
+      }
+      if (!page.hasMore) break;
+      final next = await page.next();
+      if (next.data.isEmpty) break;
+      page = next;
     }
   }
 
   /// Constant root hint used on web.
   static String rootHint() => 'hive';
+}
+
+Uint8List? _asBytes(dynamic value) {
+  if (value is Uint8List) return value;
+  if (value is List<int>) return Uint8List.fromList(value);
+  return null;
 }

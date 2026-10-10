@@ -6,6 +6,12 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## 0.3.4
+
+* Replace Hive (`hive_ce` / `hive_ce_flutter`) with [`tostore`](https://pub.dev/packages/tostore) `^3.5.1` for pack metadata and Web/WASM sticker bytes. Existing Hive boxes are not migrated.
+* Require Dart 3.13+ / Flutter 3.47+. Upgrade `material_ui` to `^1.6.0`, `pro_image_editor` to `^14.11.0`, and `image_picker` to `^1.2.4`.
+* Example Android: `android.builtInKotlin=true`, AGP 9.4.2, Kotlin 2.4.21, Gradle 9.8.0, NDK `30.0.16248370`.
+
 ## 0.3.3
 
 * Document the full public API (dartdoc) to meet pub.dev documentation scoring.

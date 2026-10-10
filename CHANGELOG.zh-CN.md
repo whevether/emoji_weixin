@@ -6,6 +6,12 @@
 
 ## Unreleased
 
+## 0.3.4
+
+* 用 [`tostore`](https://pub.dev/packages/tostore) `^3.5.1` 替换 Hive（`hive_ce` / `hive_ce_flutter`），用于表情包元数据和 Web/WASM 表情字节。旧 Hive 数据不会自动迁移。
+* 要求 Dart 3.13+ / Flutter 3.47+。`material_ui` 升级到 `^1.6.0`，`pro_image_editor` 升级到 `^14.11.0`，`image_picker` 升级到 `^1.2.4`。
+* example Android：`android.builtInKotlin=true`，AGP 9.4.2，Kotlin 2.4.21，Gradle 9.8.0，NDK `30.0.16248370`。
+
 ## 0.3.3
 
 * 全量补充公开 API 的 dartdoc 注释，以满足 pub.dev 文档评分要求。

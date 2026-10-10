@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:hive_ce_flutter/hive_ce_flutter.dart';
+import 'package:tostore/tostore.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/sticker.dart';
@@ -9,33 +9,70 @@ import '../models/sticker_pack.dart';
 import '../models/sticker_source.dart';
 import '../platform/sticker_storage.dart';
 import 'douyin_sticker_catalog.dart';
+import 'emoji_store.dart';
 
-/// Persistent sticker packs, favorites, and recently-used history (Hive-backed).
+/// Persistent sticker packs, favorites, and recently-used history (ToStore KV).
 class StickerRepository {
   StickerRepository._();
 
   /// Shared singleton used by the panel and services.
   static final StickerRepository instance = StickerRepository._();
 
-  static const _boxName = 'emoji_weixin_packs';
   static const _customPackId = 'custom';
   static const _legacyBuiltinPackId = 'builtin_default';
   static const _recentKey = '_recent_stickers';
   static const _maxRecent = 24;
+  static const _pageSize = 200;
 
   final _uuid = const Uuid();
-  Box<String>? _box;
 
-  /// Opens Hive / storage and ensures system packs exist.
+  /// In-memory copy of the KV space so pack reads stay synchronous.
+  Map<String, String>? _values;
+
+  /// Opens ToStore / storage and ensures system packs exist.
   Future<void> init() async {
-    if (_box != null) return;
-    await Hive.initFlutter();
+    if (_values != null) return;
+    final db = await EmojiStore.instance.open();
     await StickerStorage.init();
-    _box = await Hive.openBox<String>(_boxName);
-    // Remove legacy image-based "默认表情" pack if present.
-    await _box!.delete(_legacyBuiltinPackId);
+    _values = await _readAll(db);
+    if (_values!.containsKey(_legacyBuiltinPackId)) {
+      await db.removeValue(_legacyBuiltinPackId);
+      _values!.remove(_legacyBuiltinPackId);
+    }
     await _ensureDouyinPack();
     await _ensureCustomPack();
+  }
+
+  Map<String, String> get _ensureValues {
+    final values = _values;
+    if (values == null) {
+      throw StateError('StickerRepository not initialized');
+    }
+    return values;
+  }
+
+  /// Loads every KV record. [getAllPacks] filters this snapshot.
+  Future<Map<String, String>> _readAll(ToStore db) async {
+    final values = <String, String>{};
+    var page = await db.kv.query().limit(_pageSize);
+    while (true) {
+      for (final record in page.data) {
+        final key = record['key'];
+        final raw = _asString(record['value']);
+        if (key is String && raw != null) values[key] = raw;
+      }
+      if (!page.hasMore) break;
+      final next = await page.next();
+      if (next.data.isEmpty) break;
+      page = next;
+    }
+    return values;
+  }
+
+  String? _asString(dynamic value) {
+    if (value == null) return null;
+    if (value is String) return value;
+    return jsonEncode(value);
   }
 
   /// Back-compat for callers that previously used filesystem pack dirs.
@@ -52,7 +89,7 @@ class StickerRepository {
   }
 
   Future<void> _ensureCustomPack() async {
-    if (_box!.containsKey(_customPackId)) return;
+    if (_ensureValues.containsKey(_customPackId)) return;
     await savePack(
       const StickerPack(
         id: _customPackId,
@@ -65,7 +102,7 @@ class StickerRepository {
 
   /// Returns the recently used stickers list (most recent first).
   List<Sticker> getRecentStickers() {
-    final raw = _box!.get(_recentKey);
+    final raw = _ensureValues[_recentKey];
     if (raw == null || raw.isEmpty) return const [];
     try {
       final list = jsonDecode(raw) as List<dynamic>;
@@ -85,7 +122,7 @@ class StickerRepository {
       next.add(item);
       if (next.length >= _maxRecent) break;
     }
-    await _box!.put(
+    await _put(
       _recentKey,
       jsonEncode(next.map((e) => e.toJson()).toList()),
     );
@@ -93,7 +130,7 @@ class StickerRepository {
 
   /// All user-visible packs, sorted by source then name.
   List<StickerPack> getAllPacks() {
-    final packs = _box!.values
+    final packs = _ensureValues.values
         .map((raw) {
           try {
             return StickerPack.fromJson(
@@ -126,7 +163,7 @@ class StickerRepository {
 
   /// Looks up a pack by [id], or `null` if missing / corrupt.
   StickerPack? getPack(String id) {
-    final raw = _box!.get(id);
+    final raw = _ensureValues[id];
     if (raw == null) return null;
     try {
       return StickerPack.fromJson(jsonDecode(raw) as Map<String, dynamic>);
@@ -144,9 +181,14 @@ class StickerRepository {
         source: StickerSource.custom,
       );
 
-  /// Persists [pack] to Hive.
+  /// Persists [pack] to ToStore.
   Future<void> savePack(StickerPack pack) async {
-    await _box!.put(pack.id, jsonEncode(pack.toJson()));
+    await _put(pack.id, jsonEncode(pack.toJson()));
+  }
+
+  Future<void> _put(String key, String raw) async {
+    await EmojiStore.instance.db.setValue(key, raw);
+    _ensureValues[key] = raw;
   }
 
   /// Deletes a non-system pack and its stored media.
@@ -155,7 +197,8 @@ class StickerRepository {
       throw ArgumentError('Cannot delete system pack: $packId');
     }
     await StickerStorage.deletePackDir(packId);
-    await _box!.delete(packId);
+    await EmojiStore.instance.db.removeValue(packId);
+    _ensureValues.remove(packId);
   }
 
   /// Appends a sticker to the favorites pack and returns it.

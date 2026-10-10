@@ -1,25 +1,24 @@
 name: emoji_weixin
 description: WeChat-style emoji/sticker panel for Flutter with Klipy search, custom stickers, camera capture, and multi-language UI.
-version: 0.3.3
+version: 0.3.4
 homepage: https://github.com/whevether/emoji_weixin
 repository: https://github.com/whevether/emoji_weixin
 
 environment:
-  sdk: ^3.12.2
-  flutter: ">=3.44.0"
+  sdk: ^3.13.0
+  flutter: ">=3.47.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  material_ui: ^1.4.0
+  material_ui: ^1.6.0
   extended_image: ^10.1.0
-  hive_ce: ^2.20.0
-  hive_ce_flutter: ^2.3.4
   http: ^1.6.0
-  image_picker: ^1.2.3
+  image_picker: ^1.2.4
   path: ^1.9.1
   path_provider: ^2.1.6
-  pro_image_editor: ^14.3.0
+  pro_image_editor: ^14.11.0
+  tostore: ^3.5.1
   uuid: ^4.6.0
 
 dev_dependencies:

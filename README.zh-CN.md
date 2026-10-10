@@ -4,7 +4,7 @@
 
 仿微信风格的 Flutter 表情/贴纸面板 Package。
 
-**环境要求：** Dart 3.12+ / Flutter 3.44+。使用独立包 [`material_ui`](https://pub.dev/packages/material_ui)（`package:material_ui/material_ui.dart`），不再直接 import `package:flutter/material.dart`。宿主 App 建议同样迁移；对尚未迁移的第三方 Material 组件使用 `MaterialUiCompatibilityBridge` 桥接。
+**环境要求：** Dart 3.13+ / Flutter 3.47+。使用独立包 [`material_ui`](https://pub.dev/packages/material_ui)（`package:material_ui/material_ui.dart`），不再直接 import `package:flutter/material.dart`。宿主 App 建议同样迁移；对尚未迁移的第三方 Material 组件使用 `MaterialUiCompatibilityBridge` 桥接。
 
 功能：
 
@@ -133,7 +133,7 @@ flutter run                      # 或 -d chrome / macos / windows / linux
 | `EmojiWeixinConfig` | 应用/面板配置（Klipy Key、`locale`） |
 | `EmojiWeixinLocale` | UI 语种：中国/美国/越南/印尼/菲律宾/马来西亚/印度 |
 | `EmojiWeixinPanel` | 仿微信底部表情面板 |
-| `StickerRepository` | 表情包/收藏持久化（Hive） |
+| `StickerRepository` | 表情包/收藏持久化（ToStore） |
 | `StickerImportService` | `image_picker` 添加/编辑 |
 | `CameraStickerService` | 拍照 + 编辑（移动端） |
 | `KlipyClient` / `KlipyStickerService` | 搜索与下载合成 |

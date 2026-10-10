@@ -4,7 +4,7 @@
 
 WeChat-style Flutter emoji/sticker panel package.
 
-**Requirements:** Dart 3.12+ / Flutter 3.44+. Uses standalone [`material_ui`](https://pub.dev/packages/material_ui) (`package:material_ui/material_ui.dart`) instead of `package:flutter/material.dart`. Host apps should do the same; wrap unmigrated third-party Material widgets with `MaterialUiCompatibilityBridge`.
+**Requirements:** Dart 3.13+ / Flutter 3.47+. Uses standalone [`material_ui`](https://pub.dev/packages/material_ui) (`package:material_ui/material_ui.dart`) instead of `package:flutter/material.dart`. Host apps should do the same; wrap unmigrated third-party Material widgets with `MaterialUiCompatibilityBridge`.
 
 Features:
 
@@ -133,7 +133,7 @@ Aligned with [kinetic_player/example](https://github.com/wanwenfeng4798/kinetic_
 | `EmojiWeixinConfig` | App/panel configuration (Klipy key, `locale`) |
 | `EmojiWeixinLocale` | UI language: China/USA/Vietnam/Indonesia/Philippines/Malaysia/India |
 | `EmojiWeixinPanel` | WeChat-style bottom sticker panel |
-| `StickerRepository` | Pack/favorites persistence (Hive) |
+| `StickerRepository` | Pack/favorites persistence (ToStore) |
 | `StickerImportService` | Gallery add/edit via `image_picker` |
 | `CameraStickerService` | Capture + edit (mobile) |
 | `KlipyClient` / `KlipyStickerService` | Search and download |
