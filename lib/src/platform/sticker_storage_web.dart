@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:tostore/tostore.dart';
 
 import '../data/emoji_store.dart';
+import '../data/database_result.dart';
+import 'storage_names.dart';
 
 /// Web / WASM sticker storage backed by a ToStore blob table.
 class StickerStorageImpl {
@@ -19,11 +21,14 @@ class StickerStorageImpl {
     required String filename,
     required Uint8List bytes,
   }) async {
+    validateStorageName(packId, label: 'packId');
+    validateStorageName(filename, label: 'filename');
     final key = '$packId/$filename';
-    await _db.upsert(EmojiStore.blobTable, {
+    final result = await _db.upsert(EmojiStore.blobTable, {
       'key': key,
       'bytes': bytes,
     });
+    requireDatabaseSuccess(result, 'Save sticker media');
     return 'hive:$key';
   }
 
@@ -38,26 +43,40 @@ class StickerStorageImpl {
     return _asBytes(row?['bytes']);
   }
 
-  /// Deletes blob rows whose key starts with [packId]/.
+  /// Deletes one blob with a validated storage reference.
+  static Future<void> deleteBytes(String ref) async {
+    if (!ref.startsWith('hive:')) throw ArgumentError('Expected a blob ref');
+    final parts = ref.substring(5).split('/');
+    if (parts.length != 2) throw ArgumentError('Invalid blob ref');
+    for (final part in parts) {
+      validateStorageName(part);
+    }
+    requireDatabaseSuccess(
+      await _db.delete(EmojiStore.blobTable).whereEqual('key', parts.join('/')),
+      'Delete sticker media',
+    );
+  }
+
+  /// Deletes blobs in bounded batches, without offset pagination while deleting.
   static Future<void> deletePackDir(String packId) async {
+    validateStorageName(packId, label: 'packId');
     final prefix = '$packId/';
-    var page = await _db
-        .query(EmojiStore.blobTable)
-        .where('key', 'LIKE', '$prefix%')
-        .limit(200);
     while (true) {
-      final keys = <String>[];
-      for (final row in page.data) {
-        final key = row['key'];
-        if (key is String && key.startsWith(prefix)) keys.add(key);
-      }
+      final page = await _db
+          .query(EmojiStore.blobTable)
+          .where('key', '>=', prefix)
+          .where('key', '<', '${packId}0')
+          .limit(200);
+      if (page.hasErrors) throw StateError('Read sticker media failed');
+      final keys = page.data
+          .map((row) => row['key'])
+          .whereType<String>()
+          .where((key) => key.startsWith(prefix))
+          .toList();
+      if (keys.isEmpty) break;
       for (final key in keys) {
-        await _db.delete(EmojiStore.blobTable).where('key', '=', key);
+        await deleteBytes('hive:$key');
       }
-      if (!page.hasMore) break;
-      final next = await page.next();
-      if (next.data.isEmpty) break;
-      page = next;
     }
   }
 

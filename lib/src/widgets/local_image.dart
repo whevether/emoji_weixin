@@ -4,10 +4,11 @@ import 'package:material_ui/material_ui.dart';
 
 import '../platform/sticker_storage.dart';
 import 'local_image_web.dart'
-    if (dart.library.io) 'local_image_io.dart' as platform;
+    if (dart.library.io) 'local_image_io.dart'
+    as platform;
 
 /// Renders a sticker local ref (filesystem path or `hive:` blob key).
-class LocalImage extends StatelessWidget {
+class LocalImage extends StatefulWidget {
   /// Creates a local / blob image widget for [ref].
   const LocalImage({
     super.key,
@@ -33,12 +34,42 @@ class LocalImage extends StatelessWidget {
   /// Builder shown when decoding fails.
   final ImageErrorWidgetBuilder? errorBuilder;
 
-  /// Builds the image (memory for blobs, platform file otherwise).
+  @override
+  State<LocalImage> createState() => _LocalImageState();
+}
+
+class _LocalImageState extends State<LocalImage> {
+  Future<Uint8List?>? _bytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant LocalImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.ref != widget.ref) _load();
+  }
+
+  void _load() {
+    _bytes = StickerStorage.isBlobRef(widget.ref)
+        ? StickerStorage.readBytes(widget.ref)
+        : null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final ref = widget.ref;
+    final width = widget.width;
+    final height = widget.height;
+    final fit = widget.fit;
+    final errorBuilder = widget.errorBuilder;
     if (StickerStorage.isBlobRef(ref)) {
       return FutureBuilder<Uint8List?>(
-        future: StickerStorage.readBytes(ref),
+        key: ValueKey(ref),
+        future: _bytes,
         builder: (context, snap) {
           final bytes = snap.data;
           if (bytes == null) {
@@ -53,8 +84,8 @@ class LocalImage extends StatelessWidget {
             }
             return errorBuilder?.call(
                   context,
-                  StateError('missing blob'),
-                  StackTrace.current,
+                  snap.error ?? StateError('missing blob'),
+                  snap.stackTrace ?? StackTrace.current,
                 ) ??
                 const SizedBox.shrink();
           }

@@ -43,4 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
-/pubspec.lock
+
+# Local credentials and build state
+/assets/config.local.json
+/android/.kotlin/

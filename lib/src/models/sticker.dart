@@ -48,37 +48,47 @@ class Sticker {
     String? packId,
     String? name,
     StickerKind? kind,
-    String? localPath,
-    String? assetPath,
-    String? networkUrl,
-    String? unicode,
-    DateTime? createdAt,
+    Object? localPath = _unchanged,
+    Object? assetPath = _unchanged,
+    Object? networkUrl = _unchanged,
+    Object? unicode = _unchanged,
+    Object? createdAt = _unchanged,
   }) {
     return Sticker(
       id: id ?? this.id,
       packId: packId ?? this.packId,
       name: name ?? this.name,
       kind: kind ?? this.kind,
-      localPath: localPath ?? this.localPath,
-      assetPath: assetPath ?? this.assetPath,
-      networkUrl: networkUrl ?? this.networkUrl,
-      unicode: unicode ?? this.unicode,
-      createdAt: createdAt ?? this.createdAt,
+      localPath: identical(localPath, _unchanged)
+          ? this.localPath
+          : localPath as String?,
+      assetPath: identical(assetPath, _unchanged)
+          ? this.assetPath
+          : assetPath as String?,
+      networkUrl: identical(networkUrl, _unchanged)
+          ? this.networkUrl
+          : networkUrl as String?,
+      unicode: identical(unicode, _unchanged)
+          ? this.unicode
+          : unicode as String?,
+      createdAt: identical(createdAt, _unchanged)
+          ? this.createdAt
+          : createdAt as DateTime?,
     );
   }
 
   /// Serializes this sticker to a JSON-compatible map.
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'packId': packId,
-        'name': name,
-        'kind': kind.name,
-        'localPath': localPath,
-        'assetPath': assetPath,
-        'networkUrl': networkUrl,
-        'unicode': unicode,
-        'createdAt': createdAt?.toIso8601String(),
-      };
+    'id': id,
+    'packId': packId,
+    'name': name,
+    'kind': kind.name,
+    'localPath': localPath,
+    'assetPath': assetPath,
+    'networkUrl': networkUrl,
+    'unicode': unicode,
+    'createdAt': createdAt?.toIso8601String(),
+  };
 
   /// Deserializes a sticker from [json].
   factory Sticker.fromJson(Map<String, dynamic> json) {
@@ -97,3 +107,5 @@ class Sticker {
     );
   }
 }
+
+const _unchanged = Object();

@@ -25,28 +25,33 @@ class EmojiStore {
         type: PrimaryKeyType.none,
       ),
       fields: [
-        FieldSchema(
-          name: 'bytes',
-          type: DataType.blob,
-          nullable: false,
-        ),
+        FieldSchema(name: 'bytes', type: DataType.blob, nullable: false),
       ],
     ),
   ];
 
   ToStore? _db;
+  Future<ToStore>? _opening;
 
   /// Opens the database once. Later calls return the same instance.
-  Future<ToStore> open() async {
+  Future<ToStore> open() {
     final existing = _db;
-    if (existing != null) return existing;
-    final opened = await ToStore.open(
-      dbPath: await emojiStorePath(),
-      dbName: dbName,
-      schemas: schemas,
-    );
-    _db = opened;
-    return opened;
+    if (existing != null) return Future.value(existing);
+    return _opening ??= _open();
+  }
+
+  Future<ToStore> _open() async {
+    try {
+      final opened = await ToStore.open(
+        dbPath: await emojiStorePath(),
+        dbName: dbName,
+        schemas: schemas,
+      );
+      _db = opened;
+      return opened;
+    } finally {
+      _opening = null;
+    }
   }
 
   /// The open database. Throws if [open] has not finished.

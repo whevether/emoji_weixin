@@ -1,0 +1,10 @@
+version: 1
+name: klipy
+slug: klipy
+protocol: http
+interceptRequests: true
+port: 4500
+scenarios:
+  - name: default
+    path: ./default.js
+    default: true

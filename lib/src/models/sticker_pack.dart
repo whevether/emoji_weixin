@@ -36,29 +36,33 @@ class StickerPack {
     String? id,
     String? name,
     StickerSource? source,
-    String? coverPath,
-    String? coverAsset,
+    Object? coverPath = _unchanged,
+    Object? coverAsset = _unchanged,
     List<Sticker>? stickers,
   }) {
     return StickerPack(
       id: id ?? this.id,
       name: name ?? this.name,
       source: source ?? this.source,
-      coverPath: coverPath ?? this.coverPath,
-      coverAsset: coverAsset ?? this.coverAsset,
+      coverPath: identical(coverPath, _unchanged)
+          ? this.coverPath
+          : coverPath as String?,
+      coverAsset: identical(coverAsset, _unchanged)
+          ? this.coverAsset
+          : coverAsset as String?,
       stickers: stickers ?? this.stickers,
     );
   }
 
   /// Serializes this pack to a JSON-compatible map.
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'source': source.name,
-        'coverPath': coverPath,
-        'coverAsset': coverAsset,
-        'stickers': stickers.map((e) => e.toJson()).toList(),
-      };
+    'id': id,
+    'name': name,
+    'source': source.name,
+    'coverPath': coverPath,
+    'coverAsset': coverAsset,
+    'stickers': stickers.map((e) => e.toJson()).toList(),
+  };
 
   /// Deserializes a pack from [json].
   factory StickerPack.fromJson(Map<String, dynamic> json) {
@@ -69,9 +73,13 @@ class StickerPack {
       source: StickerSource.fromName(json['source'] as String? ?? 'custom'),
       coverPath: json['coverPath'] as String?,
       coverAsset: json['coverAsset'] as String?,
-      stickers: rawStickers
-          .map((e) => Sticker.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList(),
+      stickers: List.unmodifiable(
+        rawStickers
+            .map((e) => Sticker.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList(),
+      ),
     );
   }
 }
+
+const _unchanged = Object();

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../config/emoji_weixin_config.dart';
@@ -13,6 +15,7 @@ import '../platform/platform_caps.dart';
 import '../services/camera_sticker_service.dart';
 import '../services/sticker_import_service.dart';
 import '../widgets/sticker_renderer.dart';
+import '../widgets/local_image.dart';
 import 'sticker_manage_page.dart';
 import 'klipy_search_tab.dart';
 
@@ -70,23 +73,37 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.config != widget.config) {
       _config = EmojiWeixinConfig.resolve(widget.config);
-      _rebuildTabs();
+      if (_ready) {
+        _syncKlipy();
+        _rebuildTabs();
+      }
     }
   }
 
   Future<void> _bootstrap() async {
     try {
       await _repo.init();
+      if (!mounted) return;
       _config = EmojiWeixinConfig.resolve(widget.config);
-      final key = _config.resolvedKlipyApiKey;
-      if (key != null) {
-        _klipy = KlipyClient(apiKey: key);
-      }
+      _syncKlipy();
       _rebuildTabs();
       setState(() => _ready = true);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString());
     }
+  }
+
+  void _syncKlipy() {
+    final key = _config.resolvedKlipyApiKey;
+    final locale = _config.locale.languageCode == 'zh'
+        ? 'cn'
+        : _config.locale.languageCode;
+    if (_klipy?.apiKey == key && (_klipy == null || _klipy!.locale == locale)) {
+      return;
+    }
+    _klipy?.close();
+    _klipy = key == null ? null : KlipyClient(apiKey: key, locale: locale);
   }
 
   String _packTitle(StickerPack pack) {
@@ -108,15 +125,26 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
   }
 
   Future<void> _refresh() async {
+    if (!mounted) return;
     _rebuildTabs();
     setState(() {});
   }
 
-  Future<void> _select(Sticker sticker) async {
-    await _repo.recordRecent(sticker);
-    _recent = _repo.getRecentStickers();
-    if (mounted) setState(() {});
+  void _select(Sticker sticker) {
+    unawaited(_remember(sticker));
     widget.onStickerSelected(sticker);
+  }
+
+  Future<void> _remember(Sticker sticker) async {
+    try {
+      await _repo.recordRecent(sticker);
+      if (!mounted) return;
+      setState(() => _recent = _repo.getRecentStickers());
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)
+          ?.showSnackBar(SnackBar(content: Text(_s.operationFailed(error))));
+    }
   }
 
   @override
@@ -196,6 +224,7 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
   Widget _buildBody(_PanelTab tab) {
     if (tab.isSearch) {
       return KlipySearchTab(
+        key: ObjectKey(_klipy),
         client: _klipy!,
         strings: _s,
         onSelected: _select,
@@ -249,17 +278,14 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
                 mainAxisSpacing: 6,
                 crossAxisSpacing: 6,
               ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final sticker = _recent[index];
-                  return InkWell(
-                    onTap: () => _select(sticker),
-                    borderRadius: BorderRadius.circular(8),
-                    child: StickerRenderer(sticker: sticker),
-                  );
-                },
-                childCount: _recent.length,
-              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final sticker = _recent[index];
+                return InkWell(
+                  onTap: () => _select(sticker),
+                  borderRadius: BorderRadius.circular(8),
+                  child: StickerRenderer(sticker: sticker),
+                );
+              }, childCount: _recent.length),
             ),
           ),
         ],
@@ -280,17 +306,14 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
               mainAxisSpacing: 6,
               crossAxisSpacing: 6,
             ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final sticker = pack.stickers[index];
-                return InkWell(
-                  onTap: () => _select(sticker),
-                  borderRadius: BorderRadius.circular(8),
-                  child: StickerRenderer(sticker: sticker),
-                );
-              },
-              childCount: pack.stickers.length,
-            ),
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final sticker = pack.stickers[index];
+              return InkWell(
+                onTap: () => _select(sticker),
+                borderRadius: BorderRadius.circular(8),
+                child: StickerRenderer(sticker: sticker),
+              );
+            }, childCount: pack.stickers.length),
           ),
         ),
       ],
@@ -319,21 +342,23 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
               child: tab.isSearch
                   ? Icon(
                       Icons.search,
-                      color: selected ? const Color(0xFF07C160) : Colors.black54,
+                      color: selected
+                          ? const Color(0xFF07C160)
+                          : Colors.black54,
                     )
                   : tab.pack!.id == BuiltinEmojiCatalog.packId
-                      ? Text(
-                          '☺',
-                          style: TextStyle(
-                            fontSize: 22,
-                            color: selected
-                                ? const Color(0xFF07C160)
-                                : Colors.black87,
-                          ),
-                        )
-                      : tab.pack!.source == StickerSource.custom
-                          ? const Text('💗', style: TextStyle(fontSize: 22))
-                          : _packIcon(tab.pack!),
+                  ? Text(
+                      '☺',
+                      style: TextStyle(
+                        fontSize: 22,
+                        color: selected
+                            ? const Color(0xFF07C160)
+                            : Colors.black87,
+                      ),
+                    )
+                  : tab.pack!.source == StickerSource.custom
+                  ? const Text('💗', style: TextStyle(fontSize: 22))
+                  : _packIcon(tab.pack!),
             ),
           );
         },
@@ -351,6 +376,18 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
         fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) =>
             const Icon(Icons.folder, size: 22),
+      );
+    }
+    if (pack.coverPath != null) {
+      return SizedBox(
+        width: 28,
+        height: 28,
+        child: LocalImage(
+          ref: pack.coverPath!,
+          width: 28,
+          height: 28,
+          errorBuilder: (_, _, _) => const Icon(Icons.folder, size: 22),
+        ),
       );
     }
     if (pack.stickers.isEmpty) {
@@ -403,27 +440,21 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
           final sticker = await _camera.captureAndEdit(context, strings: _s);
           if (!mounted) return;
           if (sticker != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(_s.savedCapture)),
-            );
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text(_s.savedCapture)));
             await _refresh();
           }
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_s.operationFailed(e))),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(_s.operationFailed(e))));
     }
   }
 }
 
 class _PanelTab {
-  _PanelTab._({
-    required this.title,
-    this.pack,
-    this.isSearch = false,
-  });
+  _PanelTab._({required this.title, this.pack, this.isSearch = false});
 
   factory _PanelTab.system(String title, StickerPack pack) =>
       _PanelTab._(title: title, pack: pack);

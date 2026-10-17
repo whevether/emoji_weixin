@@ -7,7 +7,6 @@ import '../data/sticker_repository.dart';
 import '../l10n/emoji_weixin_strings.dart';
 import '../models/sticker.dart';
 import '../models/sticker_kind.dart';
-import '../platform/sticker_storage.dart';
 
 /// Edit helpers. [pro_image_editor] does not preserve animated GIF — callers
 /// should skip editing for [StickerKind.gif] and save bytes as-is.
@@ -19,14 +18,12 @@ abstract final class StickerEditHelper {
   ) async {
     return Navigator.of(context).push<Uint8List>(
       MaterialPageRoute(
-        builder: (ctx) => MaterialUiCompatibilityBridge( // ignore: deprecated_member_use
-          child: ProImageEditor.memory(
-            bytes,
-            callbacks: ProImageEditorCallbacks(
-              onImageEditingComplete: (out) async {
-                Navigator.of(ctx).pop(out);
-              },
-            ),
+        builder: (ctx) => ProImageEditor.memory(
+          bytes,
+          callbacks: ProImageEditorCallbacks(
+            onImageEditingComplete: (out) async {
+              if (ctx.mounted) Navigator.of(ctx).pop(out);
+            },
           ),
         ),
       ),
@@ -39,21 +36,17 @@ abstract final class StickerEditHelper {
     Uint8List bytes, {
     required EmojiWeixinStrings strings,
   }) async {
+    final repo = StickerRepository.instance;
+    await repo.init();
+    if (!context.mounted) return null;
     final edited = await editBytes(context, bytes);
     if (edited == null) return null;
 
-    final repo = StickerRepository.instance;
-    final id = repo.newId();
-    final ref = await StickerStorage.saveBytes(
-      packId: 'custom',
-      filename: '$id.jpg',
-      bytes: edited,
-    );
-
-    return repo.addStickerToCustom(
+    return repo.saveCustomBytes(
       name: strings.photoStickerName,
       kind: StickerKind.staticImage,
-      localPath: ref,
+      bytes: edited,
+      extension: 'jpg',
     );
   }
 }

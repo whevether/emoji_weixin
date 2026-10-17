@@ -10,7 +10,12 @@ class BuiltinEmojiCatalog {
   static const packId = 'system_emoji';
 
   /// Builds the unicode emoji [StickerPack].
-  static StickerPack pack() {
+  static StickerPack? _cached;
+
+  /// Returns the cached immutable catalog.
+  static StickerPack pack() => _cached ??= _build();
+
+  static StickerPack _build() {
     final stickers = [
       for (var i = 0; i < kBuiltinUnicodeEmojis.length; i++)
         Sticker(
@@ -25,7 +30,7 @@ class BuiltinEmojiCatalog {
       id: packId,
       name: '表情',
       source: StickerSource.builtin,
-      stickers: stickers,
+      stickers: List.unmodifiable(stickers),
     );
   }
 }

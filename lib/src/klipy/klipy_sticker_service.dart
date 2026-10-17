@@ -1,26 +1,41 @@
 import 'package:http/http.dart' as http;
-import 'package:path/path.dart' as p;
 
 import '../data/sticker_repository.dart';
 import '../models/sticker.dart';
 import '../models/sticker_kind.dart';
-import '../platform/sticker_storage.dart';
+import '../network/bounded_download.dart';
 import 'klipy_client.dart';
 
 /// Downloads Klipy / network stickers into the favorites pack.
 class KlipyStickerService {
   /// Creates a service; [client] is optional for search-related callers.
   KlipyStickerService({
-    this.client,
+    @Deprecated('Search with KlipyClient directly') this.client,
     StickerRepository? repository,
     http.Client? httpClient,
-  })  : _repo = repository ?? StickerRepository.instance,
-        _http = httpClient ?? http.Client();
+    this.timeout = const Duration(seconds: 30),
+    this.maxDownloadBytes = 20 * 1024 * 1024,
+  }) : _repo = repository ?? StickerRepository.instance,
+       _http = httpClient ?? http.Client(),
+       _ownsClient = httpClient == null;
 
   /// Optional; only needed when calling search APIs via [client].
+  @Deprecated('Search with KlipyClient directly')
   final KlipyClient? client;
   final StickerRepository _repo;
   final http.Client _http;
+  final bool _ownsClient;
+
+  /// Deadline for one complete media download.
+  final Duration timeout;
+
+  /// Maximum size of a downloaded sticker.
+  final int maxDownloadBytes;
+
+  /// Releases the client created by this service; injected clients stay open.
+  void close() {
+    if (_ownsClient) _http.close();
+  }
 
   /// Download a Klipy search result into the custom favorites pack.
   Future<Sticker> composeToFavorite(KlipyGifItem item) {
@@ -48,26 +63,18 @@ class KlipyStickerService {
     String name = 'Klipy',
   }) async {
     await _repo.init();
-    final res = await _http.get(Uri.parse(url));
-    if (res.statusCode != 200) {
-      throw StateError('Failed to download media: ${res.statusCode}');
-    }
-
-    final uriPath = Uri.parse(url).path;
-    var ext = p.extension(uriPath).replaceFirst('.', '').toLowerCase();
-    if (ext.isEmpty || ext.length > 4) ext = 'gif';
-
-    final id = _repo.newId();
-    final ref = await StickerStorage.saveBytes(
-      packId: 'custom',
-      filename: '$id.$ext',
-      bytes: res.bodyBytes,
+    final response = await boundedDownload(
+      _http,
+      Uri.parse(url),
+      timeout: timeout,
+      maxBytes: maxDownloadBytes,
     );
-
-    return _repo.addStickerToCustom(
+    final ext = stickerExtension(response.bytes, response.contentType);
+    return _repo.saveCustomBytes(
       name: name,
       kind: StickerKind.fromExtension(ext),
-      localPath: ref,
+      bytes: response.bytes,
+      extension: ext,
       networkUrl: url,
     );
   }

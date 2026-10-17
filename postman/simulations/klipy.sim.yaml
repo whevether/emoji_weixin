@@ -1,0 +1,5 @@
+simulation: klipy-regressions
+routing: path
+mocks:
+  - routeKey: klipy
+    path: ../mocks/klipy/config.yaml

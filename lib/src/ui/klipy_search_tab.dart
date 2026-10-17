@@ -36,6 +36,7 @@ class _KlipySearchTabState extends State<KlipySearchTab> {
   final _controller = TextEditingController();
   Timer? _debounce;
   bool _stickersMode = true;
+  int _requestId = 0;
   bool _loading = false;
   String? _error;
   List<KlipyGifItem> _items = const [];
@@ -43,59 +44,48 @@ class _KlipySearchTabState extends State<KlipySearchTab> {
   @override
   void initState() {
     super.initState();
-    _loadTrending();
+    _load();
   }
 
   @override
   void dispose() {
+    _requestId++;
     _debounce?.cancel();
     _controller.dispose();
     super.dispose();
   }
 
-  Future<void> _loadTrending() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final items = _stickersMode
-          ? await widget.client.trendingStickers()
-          : await widget.client.trendingGifs();
-      if (!mounted) return;
-      setState(() {
-        _items = items;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
+  @override
+  void didUpdateWidget(covariant KlipySearchTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.client != widget.client) {
+      _debounce?.cancel();
+      _load(_controller.text);
     }
   }
 
-  Future<void> _search(String query) async {
-    if (query.trim().isEmpty) {
-      await _loadTrending();
-      return;
-    }
+  Future<void> _load([String query = '']) async {
+    final requestId = ++_requestId;
+    final client = widget.client;
+    final stickers = _stickersMode;
+    final term = query.trim();
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final items = _stickersMode
-          ? await widget.client.searchStickers(query: query.trim())
-          : await widget.client.searchGifs(query: query.trim());
-      if (!mounted) return;
+      final items = term.isEmpty
+          ? await (stickers ? client.trendingStickers() : client.trendingGifs())
+          : await (stickers
+                ? client.searchStickers(query: term)
+                : client.searchGifs(query: term));
+      if (!mounted || requestId != _requestId) return;
       setState(() {
         _items = items;
         _loading = false;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || requestId != _requestId) return;
       setState(() {
         _error = e.toString();
         _loading = false;
@@ -105,7 +95,13 @@ class _KlipySearchTabState extends State<KlipySearchTab> {
 
   void _onQueryChanged(String value) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 400), () => _search(value));
+    // Invalidate the old response immediately, including the debounce window.
+    _requestId++;
+    setState(() {
+      _loading = false;
+      _error = null;
+    });
+    _debounce = Timer(const Duration(milliseconds: 400), () => _load(value));
   }
 
   void _send(KlipyGifItem item) {
@@ -154,15 +150,13 @@ class _KlipySearchTabState extends State<KlipySearchTab> {
                     value: true,
                     label: Text(widget.strings.stickers),
                   ),
-                  ButtonSegment(
-                    value: false,
-                    label: Text(widget.strings.gifs),
-                  ),
+                  ButtonSegment(value: false, label: Text(widget.strings.gifs)),
                 ],
                 selected: {_stickersMode},
                 onSelectionChanged: (s) {
                   setState(() => _stickersMode = s.first);
-                  _search(_controller.text);
+                  _debounce?.cancel();
+                  _load(_controller.text);
                 },
                 style: const ButtonStyle(
                   visualDensity: VisualDensity.compact,

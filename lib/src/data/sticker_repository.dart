@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:tostore/tostore.dart';
 import 'package:uuid/uuid.dart';
 
@@ -8,201 +9,302 @@ import '../models/sticker_kind.dart';
 import '../models/sticker_pack.dart';
 import '../models/sticker_source.dart';
 import '../platform/sticker_storage.dart';
+import '../platform/storage_names.dart';
+import 'database_result.dart';
 import 'douyin_sticker_catalog.dart';
 import 'emoji_store.dart';
 
-/// Persistent sticker packs, favorites, and recently-used history (ToStore KV).
+/// Persistent sticker packs, favorites, and recently-used history.
 class StickerRepository {
   StickerRepository._();
+
+  /// Isolated repository with an injected database and optional asset loader.
+  @visibleForTesting
+  StickerRepository.forTesting({
+    required ToStore this._database,
+    this._loadBuiltinPack,
+  });
 
   /// Shared singleton used by the panel and services.
   static final StickerRepository instance = StickerRepository._();
 
   static const _customPackId = 'custom';
-  static const _legacyBuiltinPackId = 'builtin_default';
   static const _recentKey = '_recent_stickers';
+  static const _legacyBuiltinPackId = 'builtin_default';
   static const _maxRecent = 24;
-  static const _pageSize = 200;
-
   final _uuid = const Uuid();
-
-  /// In-memory copy of the KV space so pack reads stay synchronous.
+  ToStore? _database;
+  Future<StickerPack?> Function()? _loadBuiltinPack;
+  Future<void>? _initializing;
+  Future<void> _pending = Future.value();
+  bool _initialized = false;
   Map<String, String>? _values;
+  final _packs = <String, StickerPack?>{};
+  List<StickerPack>? _sortedPacks;
+  List<Sticker>? _recent;
 
-  /// Opens ToStore / storage and ensures system packs exist.
-  Future<void> init() async {
-    if (_values != null) return;
-    final db = await EmojiStore.instance.open();
-    await StickerStorage.init();
-    _values = await _readAll(db);
-    if (_values!.containsKey(_legacyBuiltinPackId)) {
-      await db.removeValue(_legacyBuiltinPackId);
-      _values!.remove(_legacyBuiltinPackId);
-    }
-    await _ensureDouyinPack();
-    await _ensureCustomPack();
+  ToStore get _db => _database ?? EmojiStore.instance.db;
+  Map<String, String> get _ensureValues =>
+      _values ?? (throw StateError('StickerRepository not initialized'));
+
+  /// Opens storage once; simultaneous callers await the same initialization.
+  Future<void> init() {
+    if (_initialized) return Future.value();
+    return _initializing ??= _initialize();
   }
 
-  Map<String, String> get _ensureValues {
-    final values = _values;
-    if (values == null) {
-      throw StateError('StickerRepository not initialized');
+  Future<void> _initialize() async {
+    try {
+      _database ??= await EmojiStore.instance.open();
+      await StickerStorage.init();
+      _values = await _readAll();
+      if (_ensureValues.containsKey(_legacyBuiltinPackId)) {
+        await _commit(const {}, remove: {_legacyBuiltinPackId});
+      }
+      StickerPack? builtin;
+      if (_loadBuiltinPack != null) {
+        builtin = await _loadBuiltinPack!();
+      } else {
+        try {
+          builtin = await DouyinStickerCatalog.loadPack();
+        } on FlutterError {
+          // Hosts without bundled package assets can still use custom packs.
+        }
+      }
+      if (builtin != null && builtin.stickers.isNotEmpty) {
+        await _savePack(builtin);
+      }
+      if (!_ensureValues.containsKey(_customPackId)) {
+        await _savePack(
+          const StickerPack(
+            id: _customPackId,
+            name: '收藏',
+            source: StickerSource.custom,
+          ),
+        );
+      }
+      _initialized = true;
+    } catch (_) {
+      _values = null;
+      _invalidate();
+      rethrow;
+    } finally {
+      _initializing = null;
     }
-    return values;
   }
 
-  /// Loads every KV record. [getAllPacks] filters this snapshot.
-  Future<Map<String, String>> _readAll(ToStore db) async {
+  Future<Map<String, String>> _readAll() async {
     final values = <String, String>{};
-    var page = await db.kv.query().limit(_pageSize);
+    var page = await _db.kv.query().limit(200);
     while (true) {
+      if (page.hasErrors) throw StateError('Read sticker packs failed');
       for (final record in page.data) {
         final key = record['key'];
-        final raw = _asString(record['value']);
-        if (key is String && raw != null) values[key] = raw;
+        final value = record['value'];
+        if (key is String && value != null) {
+          values[key] = value is String ? value : jsonEncode(value);
+        }
       }
       if (!page.hasMore) break;
-      final next = await page.next();
-      if (next.data.isEmpty) break;
-      page = next;
+      page = await page.next();
     }
     return values;
   }
 
-  String? _asString(dynamic value) {
-    if (value == null) return null;
-    if (value is String) return value;
-    return jsonEncode(value);
+  Future<T> _mutate<T>(Future<T> Function() action) async {
+    await init();
+    final operation = _pending.then((_) => action());
+    _pending = operation.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    return operation;
   }
 
-  /// Back-compat for callers that previously used filesystem pack dirs.
-  String packDir(String packId) => '${StickerStorage.rootHint()}/packs/$packId';
+  void _invalidate() {
+    _packs.clear();
+    _sortedPacks = null;
+    _recent = null;
+  }
 
-  Future<void> _ensureDouyinPack() async {
-    try {
-      final pack = await DouyinStickerCatalog.loadPack();
-      if (pack.stickers.isEmpty) return;
-      await savePack(pack);
-    } catch (_) {
-      // Assets missing in some test contexts; ignore.
+  // Publish changes to memory only after the whole database operation commits.
+  Future<void> _commit(
+    Map<String, String> values, {
+    Set<String> remove = const {},
+  }) async {
+    Future<void> write() async {
+      for (final entry in values.entries) {
+        requireDatabaseSuccess(
+          await _db.setValue(entry.key, entry.value),
+          'Save stickers',
+        );
+      }
+      for (final key in remove) {
+        requireDatabaseSuccess(
+          await _db.removeValue(key),
+          'Delete sticker pack',
+        );
+      }
+    }
+
+    if (values.length + remove.length == 1) {
+      await write();
+    } else {
+      final result = await _db.transaction(write);
+      if (result.hasErrors) throw StateError('Sticker transaction failed');
+    }
+    _ensureValues
+      ..addAll(values)
+      ..removeWhere((key, _) => remove.contains(key));
+    for (final key in {...values.keys, ...remove}) {
+      if (key == _recentKey) {
+        _recent = null;
+      } else {
+        _packs.remove(key);
+        _sortedPacks = null;
+      }
     }
   }
 
-  Future<void> _ensureCustomPack() async {
-    if (_ensureValues.containsKey(_customPackId)) return;
-    await savePack(
-      const StickerPack(
-        id: _customPackId,
-        name: '收藏',
-        source: StickerSource.custom,
-        stickers: [],
-      ),
-    );
+  /// Legacy filesystem hint. Use media references on individual stickers.
+  @Deprecated('Use Sticker.localPath instead; web storage has no directories')
+  String packDir(String packId) {
+    validateStorageName(packId, label: 'packId');
+    return '${StickerStorage.rootHint()}/packs/$packId';
   }
 
-  /// Returns the recently used stickers list (most recent first).
+  /// Returns an immutable recently-used snapshot, most recent first.
   List<Sticker> getRecentStickers() {
+    _ensureValues;
+    return _recent ??= _decodeRecent();
+  }
+
+  List<Sticker> _decodeRecent() {
     final raw = _ensureValues[_recentKey];
-    if (raw == null || raw.isEmpty) return const [];
+    if (raw == null) return const [];
     try {
       final list = jsonDecode(raw) as List<dynamic>;
-      return list
-          .map((e) => Sticker.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList();
-    } catch (_) {
+      return List.unmodifiable(
+        list.map((e) => Sticker.fromJson(Map<String, dynamic>.from(e as Map))),
+      );
+    } on FormatException {
+      return const [];
+    } on TypeError {
       return const [];
     }
   }
 
-  /// Records [sticker] as most recently used (capped list).
-  Future<void> recordRecent(Sticker sticker) async {
-    final next = <Sticker>[sticker];
-    for (final item in getRecentStickers()) {
-      if (item.id == sticker.id) continue;
-      next.add(item);
-      if (next.length >= _maxRecent) break;
-    }
-    await _put(
-      _recentKey,
-      jsonEncode(next.map((e) => e.toJson()).toList()),
+  /// Records a sticker without losing concurrent updates.
+  Future<void> recordRecent(Sticker sticker) => _mutate(() async {
+    final next = [
+      sticker,
+      ...getRecentStickers().where(
+        (s) => s.id != sticker.id || s.packId != sticker.packId,
+      ),
+    ].take(_maxRecent);
+    await _commit({_recentKey: _encodeRecent(next)});
+  });
+
+  String _encodeRecent(Iterable<Sticker> stickers) =>
+      jsonEncode(stickers.map((s) => s.toJson()).toList());
+
+  /// Cached, immutable packs sorted by source and display name.
+  List<StickerPack> getAllPacks() {
+    return _sortedPacks ??= List.unmodifiable(
+      _ensureValues.keys
+          .where((id) => !id.startsWith('_'))
+          .map(getPack)
+          .whereType<StickerPack>()
+          .toList()
+        ..sort((a, b) {
+          int rank(StickerPack p) =>
+              p.id == DouyinStickerCatalog.packId ? -1 : p.source.index;
+          final order = rank(a).compareTo(rank(b));
+          return order != 0 ? order : a.name.compareTo(b.name);
+        }),
     );
   }
 
-  /// All user-visible packs, sorted by source then name.
-  List<StickerPack> getAllPacks() {
-    final packs = _ensureValues.values
-        .map((raw) {
-          try {
-            return StickerPack.fromJson(
-              jsonDecode(raw) as Map<String, dynamic>,
-            );
-          } catch (_) {
-            return null;
-          }
-        })
-        .whereType<StickerPack>()
-        .where((p) => p.id != _recentKey && !p.id.startsWith('_'))
-        .toList();
-    packs.sort((a, b) {
-      int rank(String id, StickerSource s) {
-        if (id == DouyinStickerCatalog.packId) return 0;
-        return switch (s) {
-          StickerSource.builtin => 1,
-          StickerSource.custom => 2,
-          StickerSource.imported => 3,
-          StickerSource.klipy => 4,
-        };
-      }
-
-      final c = rank(a.id, a.source).compareTo(rank(b.id, b.source));
-      if (c != 0) return c;
-      return a.name.compareTo(b.name);
-    });
-    return packs;
-  }
-
-  /// Looks up a pack by [id], or `null` if missing / corrupt.
+  /// Looks up a cached pack, or null when missing or corrupt.
   StickerPack? getPack(String id) {
+    if (_packs.containsKey(id)) return _packs[id];
     final raw = _ensureValues[id];
-    if (raw == null) return null;
+    if (raw == null || id.startsWith('_')) return null;
     try {
-      return StickerPack.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-    } catch (_) {
-      return null;
+      return _packs[id] = StickerPack.fromJson(
+        jsonDecode(raw) as Map<String, dynamic>,
+      );
+    } on FormatException {
+      return _packs[id] = null;
+    } on TypeError {
+      return _packs[id] = null;
     }
   }
 
-  /// The user favorites pack (`custom`).
+  /// User favorites; corrupt data is never silently overwritten by an empty pack.
   StickerPack get customPack =>
       getPack(_customPackId) ??
-      const StickerPack(
-        id: _customPackId,
-        name: '收藏',
-        source: StickerSource.custom,
+      (throw StateError('Favorites pack is missing or corrupt'));
+
+  /// Saves a pack, taking a serialized snapshot of its stickers.
+  Future<void> savePack(StickerPack pack) => _mutate(() => _savePack(pack));
+
+  Future<void> _savePack(StickerPack pack) async {
+    validateStorageName(pack.id, label: 'packId');
+    if (pack.id.startsWith('_')) throw ArgumentError('Reserved pack id');
+    await _commit({pack.id: jsonEncode(pack.toJson())});
+  }
+
+  /// Saves media and its favorite together, removing the new media on failure.
+  Future<Sticker> saveCustomBytes({
+    required String name,
+    required StickerKind kind,
+    required Uint8List bytes,
+    required String extension,
+    String? networkUrl,
+  }) => _mutate(() async {
+    validateStorageName(extension, label: 'extension');
+    if (bytes.isEmpty) throw ArgumentError('Empty sticker media');
+    final ref = await StickerStorage.saveBytes(
+      packId: _customPackId,
+      filename: '${newId()}.$extension',
+      bytes: bytes,
+    );
+    try {
+      return await _addCustom(
+        name: name,
+        kind: kind,
+        localPath: ref,
+        networkUrl: networkUrl,
       );
-
-  /// Persists [pack] to ToStore.
-  Future<void> savePack(StickerPack pack) async {
-    await _put(pack.id, jsonEncode(pack.toJson()));
-  }
-
-  Future<void> _put(String key, String raw) async {
-    await EmojiStore.instance.db.setValue(key, raw);
-    _ensureValues[key] = raw;
-  }
-
-  /// Deletes a non-system pack and its stored media.
-  Future<void> deletePack(String packId) async {
-    if (packId == _customPackId || packId == DouyinStickerCatalog.packId) {
-      throw ArgumentError('Cannot delete system pack: $packId');
+    } catch (error, stack) {
+      try {
+        await StickerStorage.deleteBytes(ref);
+      } catch (cleanupError, cleanupStack) {
+        debugPrint(
+          'Failed to clean up unsaved sticker: $cleanupError\n$cleanupStack',
+        );
+      }
+      Error.throwWithStackTrace(error, stack);
     }
-    await StickerStorage.deletePackDir(packId);
-    await EmojiStore.instance.db.removeValue(packId);
-    _ensureValues.remove(packId);
-  }
+  });
 
-  /// Appends a sticker to the favorites pack and returns it.
+  /// Appends an existing media reference to favorites.
   Future<Sticker> addStickerToCustom({
+    required String name,
+    required StickerKind kind,
+    required String localPath,
+    String? networkUrl,
+  }) => _mutate(
+    () => _addCustom(
+      name: name,
+      kind: kind,
+      localPath: localPath,
+      networkUrl: networkUrl,
+    ),
+  );
+
+  Future<Sticker> _addCustom({
     required String name,
     required StickerKind kind,
     required String localPath,
@@ -210,7 +312,7 @@ class StickerRepository {
   }) async {
     final pack = customPack;
     final sticker = Sticker(
-      id: _uuid.v4(),
+      id: newId(),
       packId: pack.id,
       name: name,
       kind: kind,
@@ -218,33 +320,112 @@ class StickerRepository {
       networkUrl: networkUrl,
       createdAt: DateTime.now(),
     );
-    final updated = pack.copyWith(
-      stickers: [...pack.stickers, sticker],
-      coverPath: pack.coverPath ?? localPath,
+    await _savePack(
+      pack.copyWith(
+        stickers: [...pack.stickers, sticker],
+        coverPath: pack.coverPath ?? localPath,
+      ),
     );
-    await savePack(updated);
     return sticker;
   }
 
-  /// Removes a sticker from [packId] by [stickerId].
-  Future<void> removeSticker(String packId, String stickerId) async {
-    final pack = getPack(packId);
-    if (pack == null) return;
-    final next = pack.stickers.where((s) => s.id != stickerId).toList();
-    await savePack(pack.copyWith(stickers: next));
-  }
+  Set<String> _mediaRefs(StickerPack pack) => {
+    if (pack.coverPath != null) pack.coverPath!,
+    for (final sticker in pack.stickers)
+      if (sticker.localPath != null) sticker.localPath!,
+  };
 
-  /// Renames a pack and returns the updated pack.
-  Future<StickerPack> renamePack(String packId, String name) async {
-    final pack = getPack(packId);
-    if (pack == null) {
-      throw StateError('Pack not found: $packId');
+  Set<String> _referencedMedia() => {
+    for (final pack in getAllPacks()) ..._mediaRefs(pack),
+    for (final sticker in getRecentStickers())
+      if (sticker.localPath != null) sticker.localPath!,
+  };
+
+  Future<void> _cleanUnused(Iterable<String> refs) async {
+    final referenced = _referencedMedia();
+    for (final ref in refs.toSet().difference(referenced)) {
+      // Legacy callers may use paths outside storage. Never delete their files.
+      if (!StickerStorage.isBlobRef(ref) &&
+          !ref
+              .replaceAll('\\', '/')
+              .startsWith(
+                '${StickerStorage.rootHint().replaceAll('\\', '/')}/packs/',
+              )) {
+        continue;
+      }
+      await StickerStorage.deleteBytes(ref);
     }
-    final updated = pack.copyWith(name: name);
-    await savePack(updated);
-    return updated;
   }
 
-  /// Generates a new UUID string for sticker / file ids.
+  /// Deletes a user pack, pruning history and only media no other pack uses.
+  Future<void> deletePack(String packId) => _mutate(() async {
+    validateStorageName(packId, label: 'packId');
+    final pack = getPack(packId);
+    if (packId == _customPackId ||
+        pack?.source == StickerSource.builtin ||
+        packId == DouyinStickerCatalog.packId) {
+      throw ArgumentError('Cannot delete system pack');
+    }
+    if (pack == null) return;
+    final recent = getRecentStickers().where((s) => s.packId != packId);
+    await _commit({_recentKey: _encodeRecent(recent)}, remove: {packId});
+    await _cleanUnused(_mediaRefs(pack));
+    final prefix = StickerStorage.rootHint() == 'hive'
+        ? 'hive:$packId/'
+        : '${StickerStorage.rootHint().replaceAll('\\', '/')}/packs/$packId/';
+    if (!_referencedMedia().any(
+      (ref) => ref.replaceAll('\\', '/').startsWith(prefix),
+    )) {
+      await StickerStorage.deletePackDir(packId);
+    }
+  });
+
+  /// Removes a sticker, refreshing its cover and pruning history and media.
+  Future<void> removeSticker(String packId, String stickerId) =>
+      _mutate(() async {
+        final pack = getPack(packId);
+        if (pack == null) return;
+        if (pack.source == StickerSource.builtin) {
+          throw ArgumentError('Cannot edit system pack');
+        }
+        final removed = pack.stickers.where((s) => s.id == stickerId).toList();
+        if (removed.isEmpty) return;
+        final next = pack.stickers.where((s) => s.id != stickerId).toList();
+        final removedRefs = removed
+            .map((s) => s.localPath)
+            .whereType<String>()
+            .toSet();
+        final updated = pack.copyWith(
+          stickers: next,
+          coverPath: removedRefs.contains(pack.coverPath)
+              ? (next.isEmpty ? null : next.first.localPath)
+              : pack.coverPath,
+        );
+        await _commit({
+          pack.id: jsonEncode(updated.toJson()),
+          _recentKey: _encodeRecent(
+            getRecentStickers().where(
+              (s) => s.packId != packId || s.id != stickerId,
+            ),
+          ),
+        });
+        await _cleanUnused(removedRefs);
+      });
+
+  /// Renames a user pack and returns its new immutable snapshot.
+  Future<StickerPack> renamePack(String packId, String name) =>
+      _mutate(() async {
+        final pack = getPack(packId);
+        if (pack == null) throw StateError('Pack not found: $packId');
+        if (pack.source == StickerSource.builtin) {
+          throw ArgumentError('Cannot edit system pack');
+        }
+        final trimmed = name.trim();
+        if (trimmed.isEmpty) throw ArgumentError('Pack name must not be empty');
+        await _savePack(pack.copyWith(name: trimmed));
+        return getPack(packId)!;
+      });
+
+  /// Generates a UUID for new stickers and files.
   String newId() => _uuid.v4();
 }

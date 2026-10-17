@@ -17,6 +17,9 @@ class StickerStorageImpl {
   /// Always returns `null` on stub platforms.
   static Future<Uint8List?> readBytes(String ref) async => null;
 
+  /// No-op media deletion.
+  static Future<void> deleteBytes(String ref) async {}
+
   /// No-op delete.
   static Future<void> deletePackDir(String packId) async {}
 

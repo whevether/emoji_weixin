@@ -4,14 +4,14 @@
 
 仿微信风格的 Flutter 表情/贴纸面板 Package。
 
-**环境要求：** Dart 3.13+ / Flutter 3.47+。使用独立包 [`material_ui`](https://pub.dev/packages/material_ui)（`package:material_ui/material_ui.dart`），不再直接 import `package:flutter/material.dart`。宿主 App 建议同样迁移；对尚未迁移的第三方 Material 组件使用 `MaterialUiCompatibilityBridge` 桥接。
+**环境要求：** Dart 3.13+ / Flutter 3.47+。使用独立包 [`material_ui`](https://pub.dev/packages/material_ui)（`package:material_ui/material_ui.dart`），不再直接 import `package:flutter/material.dart`。宿主 App 建议同样迁移。
 
 功能：
 
-1. **Klipy 在线搜索**并下载合成为本地收藏表情  
-2. **常规表情**（Unicode 表情 +「最近使用」、抖音常用表情）  
-3. **自定义表情**（`image_picker` 选图；静态图进 `pro_image_editor`，GIF 直接添加）  
-4. **拍自己的表情**（仅 iOS/Android：系统相机 → `pro_image_editor`）  
+1. **Klipy 在线搜索**并下载合成为本地收藏表情
+2. **常规表情**（Unicode 表情 +「最近使用」、抖音常用表情）
+3. **自定义表情**（`image_picker` 选图；静态图进 `pro_image_editor`，GIF 直接添加）
+4. **拍自己的表情**（仅 iOS/Android：系统相机 → `pro_image_editor`）
 5. **多语言 UI**（`EmojiWeixinConfig.locale`：`zh` / `en` / `vi` / `id` / `fil` / `ms` / `hi`）
 
 ## 演示
@@ -67,9 +67,9 @@ EmojiWeixinPanel(
 
 ```bash
 cd example
-# 编辑 assets/config.json，填入 klipyApiKey
+# 复制 assets/config.example.json 为 assets/config.local.json，填入 klipyApiKey
 flutter pub get
-flutter run                      # 或 -d chrome / macos / windows / linux
+flutter run --dart-define-from-file=assets/config.local.json  # 或 -d chrome / macos / windows / linux
 ```
 
 ## 抖音表情来源（免责声明）
@@ -85,11 +85,11 @@ flutter run                      # 或 -d chrome / macos / windows / linux
 
 ## Klipy API Key
 
-通过配置传递，**不再使用** `--dart-define`：
+通过配置传递，示例应用使用 `--dart-define-from-file=assets/config.local.json` 加载本地配置（文件不提交 Git）：
 
-1. 到 [KLIPY Partner Panel](https://partner.klipy.com) 创建 Key（[文档](https://docs.klipy.com/getting-started)）  
-2. 宿主 App：`EmojiWeixinConfig.configure(...)` 或面板参数 `config:`  
-3. example：编辑 [`example/assets/config.json`](example/assets/config.json)（可参考 `config.example.json`）  
+1. 到 [KLIPY Partner Panel](https://partner.klipy.com) 创建 Key（[文档](https://docs.klipy.com/getting-started)）
+2. 宿主 App：`EmojiWeixinConfig.configure(...)` 或面板参数 `config:`
+3. example：编辑 `example/assets/config.local.json`（可参考 `config.example.json`）
 4. 使用搜索时需展示 KLIPY 品牌标识（[attribution](https://docs.klipy.com/attribution)）
 
 ```json
@@ -106,9 +106,9 @@ flutter run                      # 或 -d chrome / macos / windows / linux
 
 - `compileSdk` / `targetSdk`：**37**
 - `minSdk`：24
-- AGP：**9.3.1**
-- Kotlin：**2.4.10**
-- Gradle：**9.6.1**
+- AGP：**9.4.1**
+- Kotlin：**2.4.21**
+- Gradle：**9.8.1**
 - Release 签名：[`example/android/key.properties`](example/android/key.properties) + [`example/jks/emoji_weixin.jks`](example/jks/emoji_weixin.jks)（演示用证书，生产请自行替换）
 - Release 开启混淆压缩 + [`proguard-rules.pro`](example/android/app/proguard-rules.pro)
 
@@ -147,3 +147,5 @@ flutter run                      # 或 -d chrome / macos / windows / linux
 ## License
 
 MIT（不含抖音表情素材版权）
+
+示例工程最低系统版本：iOS 15 / macOS 12，与 Flutter 3.47 框架要求一致。Android 可用 `-PsigningProperties=/path/to/key.properties` 指定本地 Release 签名配置，缺少签名配置不影响 Debug 构建。

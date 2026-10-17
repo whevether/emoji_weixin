@@ -1,0 +1,25 @@
+openapi: 3.0.3
+info:
+  title: Klipy client regression fixtures
+  version: 1.0.0
+  description: Local fixtures for the response shape consumed by KlipyClient; not a full provider specification.
+paths:
+  /api/v1/test-key/stickers/trending:
+    get:
+      responses:
+        '200':
+          description: Nested result list
+          content:
+            application/json:
+              example:
+                data:
+                  data:
+                    - id: fixture-1
+                      title: Fixture
+                      file:
+                        sm:
+                          gif:
+                            url: https://example.invalid/preview.gif
+                        hd:
+                          gif:
+                            url: https://example.invalid/original.gif

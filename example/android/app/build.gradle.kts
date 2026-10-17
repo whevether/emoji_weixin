@@ -11,7 +11,7 @@ plugins {
 val localProperties = Properties()
 
 // Load release signing key (aligned with kinetic_player/example).
-val keystorePropertiesFile = rootProject.file("key.properties")
+val keystorePropertiesFile = rootProject.file(providers.gradleProperty("signingProperties").getOrElse("key.properties"))
 if (keystorePropertiesFile.exists()) {
     localProperties.load(FileInputStream(keystorePropertiesFile))
 }
@@ -39,9 +39,6 @@ android {
         jniLibs {
             useLegacyPackaging = true
         }
-    }
-
-    packaging {
         resources {
             excludes += "lib/**/libc++_shared.so"
         }
@@ -60,7 +57,7 @@ android {
     }
 
     signingConfigs {
-        create("release") {
+        if (listOf("keyAlias", "keyPassword", "storeFile", "storePassword").all { !localProperties.getProperty(it).isNullOrBlank() }) create("release") {
             keyAlias = localProperties["keyAlias"] as String
             keyPassword = localProperties["keyPassword"] as String
             storeFile = localProperties["storeFile"]?.let { file(it as String) }
@@ -76,7 +73,7 @@ android {
             ndk {
                 debugSymbolLevel = "NONE"
             }
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.findByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -92,5 +89,5 @@ flutter {
 }
 
 dependencies {
-    implementation("androidx.concurrent:concurrent-futures:1.2.0")
+    implementation("androidx.concurrent:concurrent-futures:1.3.0")
 }

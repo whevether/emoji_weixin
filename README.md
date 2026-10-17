@@ -4,14 +4,14 @@
 
 WeChat-style Flutter emoji/sticker panel package.
 
-**Requirements:** Dart 3.13+ / Flutter 3.47+. Uses standalone [`material_ui`](https://pub.dev/packages/material_ui) (`package:material_ui/material_ui.dart`) instead of `package:flutter/material.dart`. Host apps should do the same; wrap unmigrated third-party Material widgets with `MaterialUiCompatibilityBridge`.
+**Requirements:** Dart 3.13+ / Flutter 3.47+. Uses standalone [`material_ui`](https://pub.dev/packages/material_ui) (`package:material_ui/material_ui.dart`) instead of `package:flutter/material.dart`. Host apps should do the same.
 
 Features:
 
-1. **Klipy online search** — download and save results as local favorites  
-2. **Built-in emoji** — Unicode emoji + recently used, plus Douyin common stickers  
-3. **Custom stickers** — gallery pick via `image_picker`; static images open `pro_image_editor`, GIFs are added as-is  
-4. **Capture & edit** — iOS/Android only: system camera → `pro_image_editor`  
+1. **Klipy online search** — download and save results as local favorites
+2. **Built-in emoji** — Unicode emoji + recently used, plus Douyin common stickers
+3. **Custom stickers** — gallery pick via `image_picker`; static images open `pro_image_editor`, GIFs are added as-is
+4. **Capture & edit** — iOS/Android only: system camera → `pro_image_editor`
 5. **Multi-language UI** — `EmojiWeixinConfig.locale` (`zh` / `en` / `vi` / `id` / `fil` / `ms` / `hi`)
 
 ## Demo
@@ -67,9 +67,9 @@ EmojiWeixinPanel(
 
 ```bash
 cd example
-# Edit assets/config.json and set klipyApiKey
+# Copy assets/config.example.json to assets/config.local.json and set klipyApiKey
 flutter pub get
-flutter run                      # or -d chrome / macos / windows / linux
+flutter run --dart-define-from-file=assets/config.local.json  # or -d chrome / macos / windows / linux
 ```
 
 ## Douyin sticker assets (disclaimer)
@@ -85,11 +85,11 @@ Assets live under `assets/stickers/douyin/` (`info.json` + `static/`).
 
 ## Klipy API key
 
-Pass the key through configuration (**not** `--dart-define`):
+Pass the key through host configuration; the example reads ignored local settings with `--dart-define-from-file=assets/config.local.json`:
 
-1. Create a key at [KLIPY Partner Panel](https://partner.klipy.com) ([docs](https://docs.klipy.com/getting-started))  
-2. Host app: `EmojiWeixinConfig.configure(...)` or panel `config:`  
-3. Example app: edit [`example/assets/config.json`](example/assets/config.json) (see `config.example.json`)  
+1. Create a key at [KLIPY Partner Panel](https://partner.klipy.com) ([docs](https://docs.klipy.com/getting-started))
+2. Host app: `EmojiWeixinConfig.configure(...)` or panel `config:`
+3. Example app: edit `example/assets/config.local.json` (see `config.example.json`)
 4. Show KLIPY attribution in your UI when using search ([attribution](https://docs.klipy.com/attribution))
 
 ```json
@@ -106,9 +106,9 @@ Aligned with [kinetic_player/example](https://github.com/wanwenfeng4798/kinetic_
 
 - `compileSdk` / `targetSdk`: **37**
 - `minSdk`: 24
-- AGP: **9.3.1**
-- Kotlin: **2.4.10**
-- Gradle: **9.6.1**
+- AGP: **9.4.1**
+- Kotlin: **2.4.21**
+- Gradle: **9.8.1**
 - Release signing: [`example/android/key.properties`](example/android/key.properties) + [`example/jks/emoji_weixin.jks`](example/jks/emoji_weixin.jks) (demo keystore; replace for production)
 - Release minify/shrink + [`proguard-rules.pro`](example/android/app/proguard-rules.pro)
 
@@ -147,3 +147,5 @@ Aligned with [kinetic_player/example](https://github.com/wanwenfeng4798/kinetic_
 ## License
 
 MIT (does not include Douyin sticker asset copyright)
+
+The example targets iOS 15 / macOS 12, matching Flutter 3.47. Android release signing can use `-PsigningProperties=/path/to/key.properties`; debug builds do not require release signing settings.

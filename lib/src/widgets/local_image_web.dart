@@ -1,8 +1,4 @@
-import 'dart:typed_data';
-
 import 'package:material_ui/material_ui.dart';
-
-import '../platform/sticker_storage.dart';
 
 /// Web / WASM local image: reads bytes via [StickerStorage] then [Image.memory].
 class LocalFileImage extends StatelessWidget {
@@ -34,27 +30,11 @@ class LocalFileImage extends StatelessWidget {
   /// Loads bytes asynchronously and builds [Image.memory].
   @override
   Widget build(BuildContext context) {
-    // On web, custom stickers should use hive: refs; fall back to storage read.
-    return FutureBuilder<Uint8List?>(
-      future: StickerStorage.readBytes(path),
-      builder: (context, snap) {
-        final bytes = snap.data;
-        if (bytes == null) {
-          return errorBuilder?.call(
-                context,
-                StateError('unsupported local path on web'),
-                StackTrace.current,
-              ) ??
-              const SizedBox.shrink();
-        }
-        return Image.memory(
-          bytes,
-          width: width,
-          height: height,
-          fit: fit,
-          errorBuilder: errorBuilder,
-        );
-      },
-    );
+    return errorBuilder?.call(
+          context,
+          StateError('Unsupported local path on web'),
+          StackTrace.current,
+        ) ??
+        const SizedBox.shrink();
   }
 }

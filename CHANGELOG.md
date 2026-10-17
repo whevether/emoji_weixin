@@ -4,7 +4,16 @@
 
 All notable changes to this project are documented in this file.
 
-## Unreleased
+## 0.4.0
+
+* Upgrade direct dependencies to their latest compatible stable releases and synchronize the example lockfiles; add Cupertino icon fonts.
+* Serialize initialization and mutations, check database outcomes, and atomically update pack metadata and recent history. Clean up unreferenced media while preserving shared files.
+* Fix late asynchronous UI updates, stale search responses, runtime client configuration changes, and history failures blocking sticker sending.
+* Bound HTTP responses by time and size, validate downloaded raster signatures, and release owned clients. Share media persistence across gallery, camera, and network imports.
+* Cache decoded packs and blob futures, lazily build the manager, remove obsolete Material bridges, and preserve catalog aliases when consolidating duplicate image entries.
+* Allow nullable fields to be cleared with copyWith; keep legacy public entry points deprecated for compatibility.
+* Move example API settings to ignored local build configuration. Example platform minimums now match Flutter 3.47: iOS 15 and macOS 12; Android debug builds no longer require release signing settings.
+* Add database, UI, filesystem, browser storage, and local Postman HTTP regression coverage.
 
 ## 0.3.4
 

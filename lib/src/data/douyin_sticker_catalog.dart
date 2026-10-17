@@ -46,8 +46,8 @@ class DouyinStickerCatalog {
       final name = (showName != null && showName.isNotEmpty)
           ? showName
           : (displayName != null && displayName.isNotEmpty)
-              ? displayName.replaceAll(RegExp(r'^\[|\]$'), '')
-              : uri;
+          ? displayName.replaceAll(RegExp(r'^\[|\]$'), '')
+          : uri;
 
       stickers.add(
         Sticker(
@@ -70,7 +70,7 @@ class DouyinStickerCatalog {
       name: '抖音表情',
       source: StickerSource.builtin,
       coverAsset: coverAsset,
-      stickers: stickers,
+      stickers: List.unmodifiable(stickers),
     );
   }
 

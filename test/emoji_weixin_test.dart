@@ -16,6 +16,28 @@ void main() {
     expect(restored.localPath, '/tmp/a.gif');
   });
 
+  test('copyWith can clear nullable sticker and cover fields', () {
+    const sticker = Sticker(
+      id: '1',
+      packId: 'custom',
+      name: 'test',
+      kind: StickerKind.gif,
+      localPath: '/tmp/a.gif',
+      networkUrl: 'https://example.invalid/a.gif',
+    );
+    expect(sticker.copyWith(localPath: null).localPath, isNull);
+    expect(sticker.copyWith().localPath, sticker.localPath);
+    expect(sticker.copyWith(networkUrl: null).networkUrl, isNull);
+    const pack = StickerPack(
+      id: 'custom',
+      name: 'test',
+      source: StickerSource.custom,
+      coverPath: '/tmp/a.gif',
+    );
+    expect(pack.copyWith(coverPath: null).coverPath, isNull);
+    expect(pack.copyWith().coverPath, pack.coverPath);
+  });
+
   test('StickerKind from extension', () {
     expect(StickerKind.fromExtension('gif'), StickerKind.gif);
     expect(StickerKind.fromExtension('json'), StickerKind.staticImage);
@@ -34,7 +56,10 @@ void main() {
 
   test('EmojiWeixinStrings switches by locale', () {
     expect(EmojiWeixinStrings.of(EmojiWeixinLocale.zh).addEditImage, '添加/编辑图片');
-    expect(EmojiWeixinStrings.of(EmojiWeixinLocale.en).addEditImage, 'Add / edit image');
+    expect(
+      EmojiWeixinStrings.of(EmojiWeixinLocale.en).addEditImage,
+      'Add / edit image',
+    );
     expect(EmojiWeixinStrings.of(EmojiWeixinLocale.vi).addTooltip, 'Thêm');
   });
 }

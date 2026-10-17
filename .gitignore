@@ -29,3 +29,8 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 /build/
 /coverage/
+
+# Local API verification output
+postman/.dependencies/
+sim.ndjson
+sim.err

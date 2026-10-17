@@ -27,9 +27,6 @@ class EmojiWeixinDemoApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF07C160)),
         useMaterial3: true,
       ),
-      builder: (context, child) => MaterialUiCompatibilityBridge( // ignore: deprecated_member_use
-        child: child!,
-      ),
       home: const ChatDemoPage(),
     );
   }
@@ -43,9 +40,7 @@ class ChatDemoPage extends StatefulWidget {
 }
 
 class _ChatDemoPageState extends State<ChatDemoPage> {
-  final _messages = <_ChatMessage>[
-    _ChatMessage.text('你好，点下方表情按钮试试仿微信表情面板。'),
-  ];
+  final _messages = <_ChatMessage>[_ChatMessage.text('你好，点下方表情按钮试试仿微信表情面板。')];
   final _textController = TextEditingController();
   final _favoriteService = KlipyStickerService();
   bool _showPanel = false;
@@ -53,6 +48,7 @@ class _ChatDemoPageState extends State<ChatDemoPage> {
 
   @override
   void dispose() {
+    _favoriteService.close();
     _textController.dispose();
     super.dispose();
   }
@@ -73,10 +69,7 @@ class _ChatDemoPageState extends State<ChatDemoPage> {
     });
   }
 
-  Future<void> _showStickerMenu(
-    Offset globalPosition,
-    Sticker sticker,
-  ) async {
+  Future<void> _showStickerMenu(Offset globalPosition, Sticker sticker) async {
     final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
     final selected = await showMenu<String>(
       context: context,
@@ -84,9 +77,7 @@ class _ChatDemoPageState extends State<ChatDemoPage> {
         globalPosition & const Size(1, 1),
         Offset.zero & overlay.size,
       ),
-      items: const [
-        PopupMenuItem(value: 'favorite', child: Text('收藏')),
-      ],
+      items: const [PopupMenuItem(value: 'favorite', child: Text('收藏'))],
     );
     if (!mounted || selected != 'favorite') return;
     await _favoriteSticker(sticker);
@@ -95,24 +86,21 @@ class _ChatDemoPageState extends State<ChatDemoPage> {
   Future<void> _favoriteSticker(Sticker sticker) async {
     final url = sticker.networkUrl;
     if (url == null || url.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('该表情无法收藏')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('该表情无法收藏')));
       return;
     }
     try {
       await _favoriteService.saveStickerToFavorite(sticker);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('已添加到收藏')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('已添加到收藏')));
       // Remount panel so the favorites tab picks up the new sticker.
       setState(() => _panelEpoch++);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('收藏失败: $e')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('收藏失败: $e')));
     }
   }
 
@@ -206,8 +194,10 @@ class _ChatDemoPageState extends State<ChatDemoPage> {
                   hintText: '输入消息',
                   filled: true,
                   fillColor: Colors.white,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(6),
                     borderSide: BorderSide.none,
