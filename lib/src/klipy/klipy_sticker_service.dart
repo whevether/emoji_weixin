@@ -4,6 +4,7 @@ import '../data/sticker_repository.dart';
 import '../models/sticker.dart';
 import '../models/sticker_kind.dart';
 import '../network/bounded_download.dart';
+import '../network/image_format.dart';
 import 'klipy_client.dart';
 
 /// Downloads Klipy / network stickers into the favorites pack.
@@ -15,6 +16,7 @@ class KlipyStickerService {
     http.Client? httpClient,
     this.timeout = const Duration(seconds: 30),
     this.maxDownloadBytes = 20 * 1024 * 1024,
+    this.allowInsecureHttp = false,
   }) : _repo = repository ?? StickerRepository.instance,
        _http = httpClient ?? http.Client(),
        _ownsClient = httpClient == null;
@@ -28,6 +30,9 @@ class KlipyStickerService {
 
   /// Deadline for one complete media download.
   final Duration timeout;
+
+  /// Allows plain `http` downloads (HTTPS is required by default).
+  final bool allowInsecureHttp;
 
   /// Maximum size of a downloaded sticker.
   final int maxDownloadBytes;
@@ -68,11 +73,14 @@ class KlipyStickerService {
       Uri.parse(url),
       timeout: timeout,
       maxBytes: maxDownloadBytes,
+      requireHttps: !allowInsecureHttp,
     );
     final ext = stickerExtension(response.bytes, response.contentType);
     return _repo.saveCustomBytes(
       name: name,
-      kind: StickerKind.fromExtension(ext),
+      kind: isAnimatedImage(response.bytes)
+          ? StickerKind.gif
+          : StickerKind.fromExtension(ext),
       bytes: response.bytes,
       extension: ext,
       networkUrl: url,

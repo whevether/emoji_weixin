@@ -7,7 +7,15 @@ class EmojiWeixinConfig {
   const EmojiWeixinConfig({
     this.klipyApiKey,
     this.locale = EmojiWeixinLocale.zh,
+    this.klipyCustomerId,
+    this.maxFavorites = 300,
   });
+
+  /// Stable anonymous end-user id sent to Klipy as `customer_id`.
+  final String? klipyCustomerId;
+
+  /// Maximum number of favorites (default 300).
+  final int maxFavorites;
 
   /// Klipy API key. When null/empty, the search tab is hidden.
   final String? klipyApiKey;
@@ -20,12 +28,10 @@ class EmojiWeixinConfig {
   EmojiWeixinStrings get strings => EmojiWeixinStrings.of(locale);
 
   /// Whether a non-empty [klipyApiKey] is configured.
-  bool get hasKlipy =>
-      klipyApiKey != null && klipyApiKey!.trim().isNotEmpty;
+  bool get hasKlipy => klipyApiKey != null && klipyApiKey!.trim().isNotEmpty;
 
   /// Trimmed API key when [hasKlipy] is true; otherwise `null`.
-  String? get resolvedKlipyApiKey =>
-      hasKlipy ? klipyApiKey!.trim() : null;
+  String? get resolvedKlipyApiKey => hasKlipy ? klipyApiKey!.trim() : null;
 
   /// Optional process-wide default, set once at app startup.
   static EmojiWeixinConfig? _global;

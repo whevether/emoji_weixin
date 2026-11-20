@@ -4,6 +4,26 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.4.1
+
+* Import keeps already saved stickers when a later one fails, pre-checks the favorites cap with a localized message, and only reports stickers that were really added.
+* Only formats Flutter can display (PNG, JPEG, GIF, WebP, BMP, ICO, AVIF) are accepted; stricter BMP/ICO/SVG detection; animated WebP/AVIF downloads are stored as GIF kind.
+* Manager: localized pack and type names, delete confirmations, new pack, rename sticker, move sticker between packs.
+* Panel: local search (emoji keywords and sticker names), clear recent, image stickers shown separately from emoji in recent, search tab no longer swallows swipe gestures.
+* Klipy search: empty state, stops paging on a short page, retry reloads only the failed page; optional `customer_id` via `EmojiWeixinConfig.klipyCustomerId`.
+* New API: `StickerRepository.readStickerBytes`, `renameSticker`, `moveSticker`, `createPack`, `clearRecent`, `exportFavorites`/`importFavorites`, `isFavoritesFull`; `EmojiWeixinConfig.maxFavorites`; `KlipyStickerService` requires HTTPS unless `allowInsecureHttp`.
+* Add CI workflow and ignore `.cursor/`.
+* Upgrade `material_ui` to `^1.11.1`, `pro_image_editor` to `^14.29.0`, and `tostore` to `^3.6.3`.
+* Fix edited static stickers losing transparency: the editor now outputs PNG and files are saved as `.png`.
+* Klipy search now paginates on scroll, shows a localized error with a Retry button instead of raw exception text, and the panel load failure can be retried.
+* Long-press any sticker for a large preview with Send and Add to favorites (including Klipy results).
+* Add optional `EmojiWeixinPanel.onDelete` to show a WeChat-style delete key.
+* Favorites pack title is localized; sticker cells expose semantics labels; panel background follows the theme.
+
+* Favorites are deduplicated by SHA-256 content hash (`Sticker.contentHash`, new `crypto` dependency); identical media is stored once. Stickers saved earlier have no hash and are not deduplicated.
+* Image import and download detect the format from file bytes: GIF, PNG, JPEG, WebP, BMP, ICO, AVIF, HEIC, TIFF, JPEG XL and SVG. Animated GIF, WebP, APNG and AVIF skip the editor and keep their animation; formats Flutter cannot decode are saved unedited.
+* Add favorites drag-to-reorder, pin to top, multi-select delete, a 300-item favorites cap, and swipe to switch packs.
+
 ## 0.4.0
 
 * Upgrade direct dependencies to their latest compatible stable releases and synchronize the example lockfiles; add Cupertino icon fonts.

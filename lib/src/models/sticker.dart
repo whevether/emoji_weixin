@@ -13,7 +13,12 @@ class Sticker {
     this.networkUrl,
     this.unicode,
     this.createdAt,
+    this.contentHash,
   });
+
+  /// SHA-256 (hex) of the stored media bytes, used to deduplicate favorites.
+  /// Null for stickers saved before 0.4.1 or without owned media.
+  final String? contentHash;
 
   /// Unique sticker id within the app.
   final String id;
@@ -53,6 +58,7 @@ class Sticker {
     Object? networkUrl = _unchanged,
     Object? unicode = _unchanged,
     Object? createdAt = _unchanged,
+    Object? contentHash = _unchanged,
   }) {
     return Sticker(
       id: id ?? this.id,
@@ -74,6 +80,9 @@ class Sticker {
       createdAt: identical(createdAt, _unchanged)
           ? this.createdAt
           : createdAt as DateTime?,
+      contentHash: identical(contentHash, _unchanged)
+          ? this.contentHash
+          : contentHash as String?,
     );
   }
 
@@ -88,6 +97,7 @@ class Sticker {
     'networkUrl': networkUrl,
     'unicode': unicode,
     'createdAt': createdAt?.toIso8601String(),
+    if (contentHash != null) 'contentHash': contentHash,
   };
 
   /// Deserializes a sticker from [json].
@@ -104,6 +114,7 @@ class Sticker {
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'] as String)
           : null,
+      contentHash: json['contentHash'] as String?,
     );
   }
 }

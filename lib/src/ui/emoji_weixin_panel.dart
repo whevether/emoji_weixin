@@ -5,10 +5,12 @@ import 'package:material_ui/material_ui.dart';
 import '../config/emoji_weixin_config.dart';
 import '../data/builtin_emoji_catalog.dart';
 import '../data/douyin_sticker_catalog.dart';
+import '../data/emoji_keywords.dart';
 import '../data/sticker_repository.dart';
 import '../klipy/klipy_client.dart';
 import '../l10n/emoji_weixin_strings.dart';
 import '../models/sticker.dart';
+import '../models/sticker_kind.dart';
 import '../models/sticker_pack.dart';
 import '../models/sticker_source.dart';
 import '../platform/platform_caps.dart';
@@ -18,6 +20,7 @@ import '../widgets/sticker_renderer.dart';
 import '../widgets/local_image.dart';
 import 'sticker_manage_page.dart';
 import 'klipy_search_tab.dart';
+import 'sticker_preview.dart';
 
 /// Called when the user picks a sticker from [EmojiWeixinPanel].
 typedef StickerSelectedCallback = void Function(Sticker sticker);
@@ -30,10 +33,15 @@ class EmojiWeixinPanel extends StatefulWidget {
     required this.onStickerSelected,
     this.config,
     this.height = 320,
+    this.onDelete,
   });
 
   /// Invoked when a sticker is selected.
   final StickerSelectedCallback onStickerSelected;
+
+  /// Called when the WeChat-style delete key is pressed. The key is hidden
+  /// when null.
+  final VoidCallback? onDelete;
 
   /// Panel config (e.g. Klipy key, locale). Falls back to [EmojiWeixinConfig.global].
   final EmojiWeixinConfig? config;
@@ -58,6 +66,8 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
   KlipyClient? _klipy;
   List<Sticker> _recent = const [];
   late EmojiWeixinConfig _config;
+  bool _searching = false;
+  String _filter = '';
 
   EmojiWeixinStrings get _s => _config.strings;
 
@@ -90,7 +100,7 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
       setState(() => _ready = true);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() => _error = e.toString()); // shown only via friendly text
     }
   }
 
@@ -99,16 +109,23 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
     final locale = _config.locale.languageCode == 'zh'
         ? 'cn'
         : _config.locale.languageCode;
-    if (_klipy?.apiKey == key && (_klipy == null || _klipy!.locale == locale)) {
+    StickerRepository.maxCustomStickers = _config.maxFavorites;
+    final customer = _config.klipyCustomerId;
+    if (_klipy?.apiKey == key &&
+        (_klipy == null ||
+            (_klipy!.locale == locale && _klipy!.customerId == customer))) {
       return;
     }
     _klipy?.close();
-    _klipy = key == null ? null : KlipyClient(apiKey: key, locale: locale);
+    _klipy = key == null
+        ? null
+        : KlipyClient(apiKey: key, locale: locale, customerId: customer);
   }
 
   String _packTitle(StickerPack pack) {
     if (pack.id == BuiltinEmojiCatalog.packId) return _s.emojiPack;
     if (pack.id == DouyinStickerCatalog.packId) return _s.douyinPack;
+    if (pack.id == 'custom') return _s.favoritesPack;
     return pack.name;
   }
 
@@ -158,7 +175,21 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
     if (_error != null) {
       return SizedBox(
         height: widget.height,
-        child: Center(child: Text(_s.loadFailed(_error!))),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_s.loadFailedMessage),
+              TextButton(
+                onPressed: () {
+                  setState(() => _error = null);
+                  _bootstrap();
+                },
+                child: Text(_s.retry),
+              ),
+            ],
+          ),
+        ),
       );
     }
     if (!_ready) {
@@ -170,13 +201,28 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
 
     final tab = _tabs[_tabIndex];
     return Material(
-      color: const Color(0xFFF7F7F7),
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
       child: SizedBox(
         height: widget.height,
         child: Column(
           children: [
             _buildToolbar(),
-            Expanded(child: _buildBody(tab)),
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onHorizontalDragEnd: (d) {
+                  // The search tab has a text field; drags there select text.
+                  if (tab.isSearch || _searching) return;
+                  final v = d.primaryVelocity ?? 0;
+                  if (v < -300 && _tabIndex < _tabs.length - 1) {
+                    setState(() => _tabIndex++);
+                  } else if (v > 300 && _tabIndex > 0) {
+                    setState(() => _tabIndex--);
+                  }
+                },
+                child: _buildBody(tab),
+              ),
+            ),
             _buildPackBar(),
           ],
         ),
@@ -188,17 +234,62 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
     return Container(
       height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: const BoxDecoration(
-        color: Color(0xFFF7F7F7),
-        border: Border(bottom: BorderSide(color: Color(0xFFE5E5E5))),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).dividerColor),
+        ),
       ),
       child: Row(
         children: [
-          Text(
-            _tabs[_tabIndex].title,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-          const Spacer(),
+          if (_searching)
+            Expanded(
+              child: TextField(
+                autofocus: true,
+                onChanged: (v) => setState(() => _filter = v.trim()),
+                style: const TextStyle(fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: _s.emojiSearchHint,
+                  isDense: true,
+                  border: InputBorder.none,
+                ),
+              ),
+            )
+          else ...[
+            Text(
+              _tabs[_tabIndex].title,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+            const Spacer(),
+          ],
+          if (!_tabs[_tabIndex].isSearch)
+            IconButton(
+              tooltip: _s.emojiSearchHint,
+              icon: Icon(
+                _searching ? Icons.close : Icons.manage_search,
+                size: 22,
+              ),
+              onPressed: () => setState(() {
+                _searching = !_searching;
+                _filter = '';
+              }),
+            ),
+          if (_recent.isNotEmpty &&
+              _tabs[_tabIndex].pack?.id == BuiltinEmojiCatalog.packId)
+            IconButton(
+              tooltip: _s.clearRecent,
+              icon: const Icon(Icons.history_toggle_off, size: 22),
+              onPressed: () async {
+                await _repo.clearRecent();
+                await _refresh();
+              },
+            ),
+          if (widget.onDelete != null)
+            IconButton(
+              tooltip: _s.deleteKey,
+              icon: const Icon(Icons.backspace_outlined, size: 22),
+              onPressed: widget.onDelete,
+            ),
           IconButton(
             tooltip: _s.addTooltip,
             icon: const Icon(Icons.add_circle_outline, size: 22),
@@ -233,6 +324,27 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
 
     final pack = tab.pack!;
     final isEmoji = pack.id == BuiltinEmojiCatalog.packId;
+    if (_searching && _filter.isNotEmpty) {
+      final q = _filter.toLowerCase();
+      final hits = pack.stickers
+          .where(
+            (s) => isEmoji
+                ? emojiMatches(s.unicode ?? '', q)
+                : s.name.toLowerCase().contains(q),
+          )
+          .toList();
+      if (hits.isEmpty) return Center(child: Text(_s.noMatches));
+      return GridView.builder(
+        padding: const EdgeInsets.all(10),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: isEmoji ? 8 : 5,
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+        ),
+        itemCount: hits.length,
+        itemBuilder: (context, i) => _cell(hits[i]),
+      );
+    }
     if (isEmoji) {
       return _buildEmojiTab(pack);
     }
@@ -247,26 +359,63 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
       itemCount: pack.stickers.length,
       itemBuilder: (context, index) {
         final sticker = pack.stickers[index];
-        return InkWell(
-          onTap: () => _select(sticker),
-          borderRadius: BorderRadius.circular(8),
-          child: StickerRenderer(sticker: sticker),
-        );
+        return _cell(sticker);
       },
     );
   }
 
+  Widget _cell(Sticker sticker) => Semantics(
+    button: true,
+    label: sticker.name.isEmpty ? sticker.unicode : sticker.name,
+    child: InkWell(
+      onTap: () => _select(sticker),
+      onLongPress: () => showStickerPreview(
+        context,
+        sticker: sticker,
+        strings: _s,
+        onSend: _select,
+        onFavorited: _refresh,
+      ),
+      borderRadius: BorderRadius.circular(8),
+      child: StickerRenderer(sticker: sticker),
+    ),
+  );
+
   /// WeChat-like emoji tab: recently used + full unicode list.
   Widget _buildEmojiTab(StickerPack pack) {
+    final recentEmoji = _recent
+        .where((s) => s.kind == StickerKind.unicode)
+        .toList();
+    final recentImages = _recent
+        .where((s) => s.kind != StickerKind.unicode)
+        .toList();
     return CustomScrollView(
       slivers: [
-        if (_recent.isNotEmpty) ...[
+        if (recentImages.isNotEmpty)
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 5,
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) => _cell(recentImages[index]),
+                childCount: recentImages.length,
+              ),
+            ),
+          ),
+        if (recentEmoji.isNotEmpty) ...[
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
               child: Text(
                 _s.recentUsed,
-                style: const TextStyle(fontSize: 12, color: Colors.black54),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           ),
@@ -279,13 +428,8 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
                 crossAxisSpacing: 6,
               ),
               delegate: SliverChildBuilderDelegate((context, index) {
-                final sticker = _recent[index];
-                return InkWell(
-                  onTap: () => _select(sticker),
-                  borderRadius: BorderRadius.circular(8),
-                  child: StickerRenderer(sticker: sticker),
-                );
-              }, childCount: _recent.length),
+                return _cell(recentEmoji[index]);
+              }, childCount: recentEmoji.length),
             ),
           ),
         ],
@@ -294,7 +438,10 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
             child: Text(
               _s.allEmoji,
-              style: const TextStyle(fontSize: 12, color: Colors.black54),
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ),
@@ -308,11 +455,7 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
             ),
             delegate: SliverChildBuilderDelegate((context, index) {
               final sticker = pack.stickers[index];
-              return InkWell(
-                onTap: () => _select(sticker),
-                borderRadius: BorderRadius.circular(8),
-                child: StickerRenderer(sticker: sticker),
-              );
+              return _cell(sticker);
             }, childCount: pack.stickers.length),
           ),
         ),
@@ -323,9 +466,9 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
   Widget _buildPackBar() {
     return Container(
       height: 48,
-      decoration: const BoxDecoration(
-        color: Color(0xFFEEEEEE),
-        border: Border(top: BorderSide(color: Color(0xFFE0E0E0))),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
       ),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
@@ -333,32 +476,43 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
         itemBuilder: (context, index) {
           final tab = _tabs[index];
           final selected = index == _tabIndex;
-          return InkWell(
-            onTap: () => setState(() => _tabIndex = index),
-            child: Container(
-              width: 52,
-              alignment: Alignment.center,
-              color: selected ? const Color(0xFFF7F7F7) : Colors.transparent,
-              child: tab.isSearch
-                  ? Icon(
-                      Icons.search,
-                      color: selected
-                          ? const Color(0xFF07C160)
-                          : Colors.black54,
-                    )
-                  : tab.pack!.id == BuiltinEmojiCatalog.packId
-                  ? Text(
-                      '☺',
-                      style: TextStyle(
-                        fontSize: 22,
+          return Semantics(
+            button: true,
+            selected: selected,
+            label: tab.title,
+            child: InkWell(
+              onTap: () => setState(() {
+                _tabIndex = index;
+                _searching = false;
+                _filter = '';
+              }),
+              child: Container(
+                width: 52,
+                alignment: Alignment.center,
+                color: selected
+                    ? Theme.of(context).colorScheme.surfaceContainerLow
+                    : Colors.transparent,
+                child: tab.isSearch
+                    ? Icon(
+                        Icons.search,
                         color: selected
                             ? const Color(0xFF07C160)
-                            : Colors.black87,
-                      ),
-                    )
-                  : tab.pack!.source == StickerSource.custom
-                  ? const Text('💗', style: TextStyle(fontSize: 22))
-                  : _packIcon(tab.pack!),
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                      )
+                    : tab.pack!.id == BuiltinEmojiCatalog.packId
+                    ? Text(
+                        '☺',
+                        style: TextStyle(
+                          fontSize: 22,
+                          color: selected
+                              ? const Color(0xFF07C160)
+                              : Theme.of(context).colorScheme.onSurface,
+                        ),
+                      )
+                    : tab.pack!.source == StickerSource.custom
+                    ? const Text('💗', style: TextStyle(fontSize: 22))
+                    : _packIcon(tab.pack!),
+              ),
             ),
           );
         },
@@ -391,7 +545,11 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
       );
     }
     if (pack.stickers.isEmpty) {
-      return const Icon(Icons.folder, size: 22, color: Colors.black54);
+      return Icon(
+        Icons.folder,
+        size: 22,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      );
     }
     return SizedBox(
       width: 28,
@@ -425,6 +583,13 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
 
     if (!mounted || action == null) return;
 
+    // Fail before the user spends time picking and editing images.
+    if (_repo.isFavoritesFull) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(_s.favoritesFull)));
+      return;
+    }
+
     try {
       switch (action) {
         case 'add':
@@ -449,6 +614,7 @@ class _EmojiWeixinPanelState extends State<EmojiWeixinPanel> {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(_s.operationFailed(e))));
+      await _refresh();
     }
   }
 }

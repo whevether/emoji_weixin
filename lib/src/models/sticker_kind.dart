@@ -13,6 +13,7 @@ enum StickerKind {
   static StickerKind fromExtension(String? ext) {
     switch ((ext ?? '').toLowerCase()) {
       case 'gif':
+      case 'apng':
         return StickerKind.gif;
       default:
         return StickerKind.staticImage;

@@ -3,7 +3,8 @@ import 'package:flutter/widgets.dart';
 import '../l10n/emoji_weixin_strings.dart';
 import '../models/sticker.dart';
 import 'camera_sticker_service_stub.dart'
-    if (dart.library.io) 'camera_sticker_service_io.dart' as impl;
+    if (dart.library.io) 'camera_sticker_service_io.dart'
+    as impl;
 
 /// Captures a camera photo and saves it as a custom sticker.
 class CameraStickerService {
@@ -13,6 +14,5 @@ class CameraStickerService {
   Future<Sticker?> captureAndEdit(
     BuildContext context, {
     required EmojiWeixinStrings strings,
-  }) =>
-      impl.captureAndEdit(context, strings: strings);
+  }) => impl.captureAndEdit(context, strings: strings);
 }

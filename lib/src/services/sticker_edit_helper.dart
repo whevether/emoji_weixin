@@ -20,6 +20,12 @@ abstract final class StickerEditHelper {
       MaterialPageRoute(
         builder: (ctx) => ProImageEditor.memory(
           bytes,
+          configs: const ProImageEditorConfigs(
+            // PNG keeps transparent backgrounds; the default JPG flattens them.
+            imageGeneration: ImageGenerationConfigs(
+              outputFormat: OutputFormat.png,
+            ),
+          ),
           callbacks: ProImageEditorCallbacks(
             onImageEditingComplete: (out) async {
               if (ctx.mounted) Navigator.of(ctx).pop(out);
@@ -46,7 +52,7 @@ abstract final class StickerEditHelper {
       name: strings.photoStickerName,
       kind: StickerKind.staticImage,
       bytes: edited,
-      extension: 'jpg',
+      extension: 'png',
     );
   }
 }

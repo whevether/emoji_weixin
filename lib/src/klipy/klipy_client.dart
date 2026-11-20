@@ -38,6 +38,7 @@ class KlipyClient {
     required this.apiKey,
     this.locale = 'cn',
     this.contentFilter = 'medium',
+    this.customerId,
     http.Client? httpClient,
     Uri? baseUri,
     this.timeout = const Duration(seconds: 15),
@@ -54,6 +55,9 @@ class KlipyClient {
 
   /// Klipy content filter level (e.g. `medium`).
   final String contentFilter;
+
+  /// Optional anonymous end-user id sent as `customer_id`.
+  final String? customerId;
   final http.Client _http;
 
   final bool _ownsClient;
@@ -105,6 +109,8 @@ class KlipyClient {
         'per_page': '${_clampPerPage(perPage)}',
         'locale': locale,
         'content_filter': contentFilter,
+        if (customerId != null && customerId!.isNotEmpty)
+          'customer_id': customerId!,
         'format_filter': 'gif,webp',
       },
       isSticker: isSticker,

@@ -7,5 +7,4 @@ import '../models/sticker.dart';
 Future<Sticker?> captureAndEdit(
   BuildContext context, {
   required EmojiWeixinStrings strings,
-}) async =>
-    null;
+}) async => null;

@@ -7,6 +7,7 @@ import '../klipy/klipy_client.dart';
 import '../l10n/emoji_weixin_strings.dart';
 import '../models/sticker.dart';
 import '../models/sticker_kind.dart';
+import 'sticker_preview.dart';
 
 /// Klipy search / trending tab for the sticker panel.
 class KlipySearchTab extends StatefulWidget {
@@ -51,6 +52,7 @@ class _KlipySearchTabState extends State<KlipySearchTab> {
   void dispose() {
     _requestId++;
     _debounce?.cancel();
+    _scroll.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -64,34 +66,98 @@ class _KlipySearchTabState extends State<KlipySearchTab> {
     }
   }
 
-  Future<void> _load([String query = '']) async {
-    final requestId = ++_requestId;
+  static const _perPage = 24;
+  final _scroll = ScrollController();
+  int _page = 1;
+  bool _hasMore = false;
+  bool _loadingMore = false;
+  bool _moreFailed = false;
+
+  Future<List<KlipyGifItem>> _fetch(String term, int page) {
     final client = widget.client;
     final stickers = _stickersMode;
+    return term.isEmpty
+        ? (stickers
+              ? client.trendingStickers(page: page, perPage: _perPage)
+              : client.trendingGifs(page: page, perPage: _perPage))
+        : (stickers
+              ? client.searchStickers(
+                  query: term,
+                  page: page,
+                  perPage: _perPage,
+                )
+              : client.searchGifs(query: term, page: page, perPage: _perPage));
+  }
+
+  Future<void> _load([String query = '']) async {
+    final requestId = ++_requestId;
     final term = query.trim();
     setState(() {
       _loading = true;
+      _loadingMore = false;
+      _moreFailed = false;
       _error = null;
     });
     try {
-      final items = term.isEmpty
-          ? await (stickers ? client.trendingStickers() : client.trendingGifs())
-          : await (stickers
-                ? client.searchStickers(query: term)
-                : client.searchGifs(query: term));
+      final items = await _fetch(term, 1);
       if (!mounted || requestId != _requestId) return;
       setState(() {
         _items = items;
+        _page = 1;
+        // A short page means the end; avoids one extra empty request.
+        _hasMore = items.length >= _perPage;
+        _moreFailed = false;
         _loading = false;
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted || requestId != _requestId) return;
       setState(() {
-        _error = e.toString();
+        _error = widget.strings.searchFailedMessage;
         _loading = false;
       });
     }
   }
+
+  Future<void> _loadMore() async {
+    if (_loading || _loadingMore || !_hasMore || _error != null) return;
+    if (_moreFailed) return;
+    final requestId = _requestId;
+    final next = _page + 1;
+    setState(() => _loadingMore = true);
+    try {
+      final more = await _fetch(_controller.text.trim(), next);
+      if (!mounted || requestId != _requestId) return;
+      final seen = _items.map((e) => e.id).toSet();
+      final fresh = more.where((e) => seen.add(e.id)).toList();
+      setState(() {
+        _items = [..._items, ...fresh];
+        _page = next;
+        _hasMore = fresh.isNotEmpty && more.length >= _perPage;
+        _loadingMore = false;
+      });
+    } catch (_) {
+      if (!mounted || requestId != _requestId) return;
+      // Keep the loaded items and scroll position; Retry only refetches
+      // the failed page.
+      setState(() {
+        _loadingMore = false;
+        _moreFailed = true;
+      });
+    }
+  }
+
+  bool _onScroll(ScrollNotification n) {
+    if (n.metrics.extentAfter < 200) _loadMore();
+    return false;
+  }
+
+  Sticker _toSticker(KlipyGifItem item) => Sticker(
+    id: item.id,
+    packId: 'klipy',
+    name: item.title,
+    kind: StickerKind.gif,
+    networkUrl: item.originalUrl,
+  );
 
   void _onQueryChanged(String value) {
     _debounce?.cancel();
@@ -106,14 +172,15 @@ class _KlipySearchTabState extends State<KlipySearchTab> {
 
   void _send(KlipyGifItem item) {
     // Send only — favorite via chat context menu (WeChat-like).
-    widget.onSelected(
-      Sticker(
-        id: item.id,
-        packId: 'klipy',
-        name: item.title,
-        kind: StickerKind.gif,
-        networkUrl: item.originalUrl,
-      ),
+    widget.onSelected(_toSticker(item));
+  }
+
+  void _preview(KlipyGifItem item) {
+    showStickerPreview(
+      context,
+      sticker: _toSticker(item),
+      strings: widget.strings,
+      onSend: widget.onSelected,
     );
   }
 
@@ -134,7 +201,7 @@ class _KlipySearchTabState extends State<KlipySearchTab> {
                     isDense: true,
                     prefixIcon: const Icon(Icons.search, size: 20),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: Theme.of(context).colorScheme.surface,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide.none,
@@ -167,66 +234,106 @@ class _KlipySearchTabState extends State<KlipySearchTab> {
           ),
         ),
         if (_loading) const LinearProgressIndicator(minHeight: 2),
-        if (_error != null)
+        if (_error != null || _moreFailed)
           Padding(
-            padding: const EdgeInsets.all(12),
-            child: Text(
-              widget.strings.searchFailed(_error!),
-              style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _error ?? widget.strings.searchFailedMessage,
+                    style: const TextStyle(
+                      color: Colors.redAccent,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    if (_error == null && _moreFailed) {
+                      setState(() => _moreFailed = false);
+                      _loadMore();
+                    } else {
+                      _load(_controller.text);
+                    }
+                  },
+                  child: Text(widget.strings.retry),
+                ),
+              ],
             ),
           ),
         Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.all(10),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-            ),
-            itemCount: _items.length,
-            itemBuilder: (context, index) {
-              final item = _items[index];
-              return InkWell(
-                onTap: () => _send(item),
-                borderRadius: BorderRadius.circular(8),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: ExtendedImage.network(
-                    item.previewUrl,
-                    fit: BoxFit.cover,
-                    cache: true,
-                    loadStateChanged: (state) {
-                      switch (state.extendedImageLoadState) {
-                        case LoadState.loading:
-                          return const ColoredBox(
-                            color: Color(0xFFEDEDED),
-                            child: Center(
-                              child: SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              ),
+          child: !_loading && _error == null && _items.isEmpty
+              ? Center(child: Text(widget.strings.noResults))
+              : NotificationListener<ScrollNotification>(
+                  onNotification: _onScroll,
+                  child: GridView.builder(
+                    controller: _scroll,
+                    padding: const EdgeInsets.all(10),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          mainAxisSpacing: 8,
+                          crossAxisSpacing: 8,
+                        ),
+                    itemCount: _items.length,
+                    itemBuilder: (context, index) {
+                      final item = _items[index];
+                      return Semantics(
+                        button: true,
+                        label: item.title,
+                        child: InkWell(
+                          onTap: () => _send(item),
+                          onLongPress: () => _preview(item),
+                          borderRadius: BorderRadius.circular(8),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: ExtendedImage.network(
+                              item.previewUrl,
+                              fit: BoxFit.cover,
+                              cache: true,
+                              loadStateChanged: (state) {
+                                switch (state.extendedImageLoadState) {
+                                  case LoadState.loading:
+                                    return ColoredBox(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .surfaceContainerHighest,
+                                      child: const Center(
+                                        child: SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  case LoadState.failed:
+                                    return const Icon(
+                                      Icons.broken_image_outlined,
+                                    );
+                                  case LoadState.completed:
+                                    return null;
+                                }
+                              },
                             ),
-                          );
-                        case LoadState.failed:
-                          return const Icon(Icons.broken_image_outlined);
-                        case LoadState.completed:
-                          return null;
-                      }
+                          ),
+                        ),
+                      );
                     },
                   ),
                 ),
-              );
-            },
-          ),
         ),
-        const Padding(
-          padding: EdgeInsets.only(bottom: 6),
+        if (_loadingMore) const LinearProgressIndicator(minHeight: 2),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
           child: Text(
             'Powered by KLIPY',
-            style: TextStyle(fontSize: 10, color: Colors.black38),
+            style: TextStyle(
+              fontSize: 10,
+              color: Theme.of(context).colorScheme.outline,
+            ),
           ),
         ),
       ],

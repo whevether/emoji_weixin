@@ -34,3 +34,6 @@ migrate_working_dir/
 postman/.dependencies/
 sim.ndjson
 sim.err
+
+# Local editor / MCP configuration
+.cursor/

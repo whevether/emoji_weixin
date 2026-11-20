@@ -4,6 +4,25 @@
 
 本文件记录本项目的重要变更。
 
+## 0.4.1
+
+* 导入时某张失败不再丢失已保存的表情；导入前预检收藏上限并给出本地化提示；仅统计真正新增的表情。
+* 仅接受 Flutter 能显示的格式（PNG、JPEG、GIF、WebP、BMP、ICO、AVIF）；加强 BMP/ICO/SVG 识别；下载到的动图 WebP/AVIF 按 GIF 类型保存。
+* 管理页：包名与类型名本地化，删除前确认，新建表情包，重命名表情，在表情包之间移动表情。
+* 面板：本地搜索（emoji 关键词与表情名称）、清空最近使用、最近使用中图片类表情与 emoji 分开显示，搜索页不再拦截左右滑动手势。
+* Klipy 搜索：新增空结果提示；不满一页即停止翻页；重试只重新加载失败的那一页；可通过 `EmojiWeixinConfig.klipyCustomerId` 传入可选的 `customer_id`。
+* 新增 API：`StickerRepository.readStickerBytes`、`renameSticker`、`moveSticker`、`createPack`、`clearRecent`、`exportFavorites`/`importFavorites`、`isFavoritesFull`；`EmojiWeixinConfig.maxFavorites`；`KlipyStickerService` 默认要求 HTTPS（可用 `allowInsecureHttp` 放开）。
+* 新增 CI 工作流，并忽略 `.cursor/`。
+* 升级 `material_ui` 到 `^1.11.1`、`pro_image_editor` 到 `^14.29.0`、`tostore` 到 `^3.6.3`。
+* 修复编辑后的静态表情丢失透明度：编辑器输出 PNG，文件保存为 `.png`。
+* Klipy 搜索支持滚动分页，错误显示本地化提示和“重试”按钮而非原始异常；面板加载失败可重试。
+* 长按任意表情可大图预览，并可发送或添加到收藏（含 Klipy 结果）。
+* 新增可选的 `EmojiWeixinPanel.onDelete`，用于显示微信风格的删除键。
+* 收藏包标题本地化；表情格子提供语义标签；面板背景跟随主题。
+* 收藏按 SHA-256 内容哈希去重（`Sticker.contentHash`，新增 `crypto` 依赖），相同媒体只存一份；此前保存的表情没有哈希，不参与去重。
+* 图片导入与下载按文件字节识别格式：GIF、PNG、JPEG、WebP、BMP、ICO、AVIF、HEIC、TIFF、JPEG XL 和 SVG。动图 GIF、WebP、APNG、AVIF 跳过编辑器并保留动画；Flutter 无法解码的格式原样保存。
+* 新增收藏拖动排序、置顶、多选删除、300 个收藏上限和左右滑动切换表情包。
+
 ## 0.4.0
 
 * 将直接依赖更新到最新兼容稳定版，同步示例依赖锁文件，补齐 Cupertino 图标字体。

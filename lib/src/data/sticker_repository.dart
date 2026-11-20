@@ -1,9 +1,12 @@
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:tostore/tostore.dart';
 import 'package:uuid/uuid.dart';
 
+import '../network/image_format.dart';
 import '../models/sticker.dart';
 import '../models/sticker_kind.dart';
 import '../models/sticker_pack.dart';
@@ -32,6 +35,12 @@ class StickerRepository {
   static const _recentKey = '_recent_stickers';
   static const _legacyBuiltinPackId = 'builtin_default';
   static const _maxRecent = 24;
+
+  /// Maximum number of stickers in the favorites pack.
+  ///
+  /// Hosts may change this once at startup (see
+  /// `EmojiWeixinConfig.maxFavorites`).
+  static int maxCustomStickers = 300;
   final _uuid = const Uuid();
   ToStore? _database;
   Future<StickerPack?> Function()? _loadBuiltinPack;
@@ -246,6 +255,28 @@ class StickerRepository {
       getPack(_customPackId) ??
       (throw StateError('Favorites pack is missing or corrupt'));
 
+  /// Loads the media bytes of [sticker] so a host can upload or forward it.
+  ///
+  /// Works for stored (including Web `hive:` refs) and bundled stickers.
+  /// Returns `null` for unicode emoji and network-only stickers, which the
+  /// host must fetch from [Sticker.networkUrl] itself.
+  Future<Uint8List?> readStickerBytes(Sticker sticker) async {
+    final local = sticker.localPath;
+    if (local != null) {
+      await init();
+      return StickerStorage.readBytes(local);
+    }
+    final asset = sticker.assetPath;
+    if (asset != null) {
+      final data = await rootBundle.load('packages/emoji_weixin/$asset');
+      return data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+    }
+    return null;
+  }
+
+  /// Whether favorites have reached [maxCustomStickers].
+  bool get isFavoritesFull => customPack.stickers.length >= maxCustomStickers;
+
   /// Saves a pack, taking a serialized snapshot of its stickers.
   Future<void> savePack(StickerPack pack) => _mutate(() => _savePack(pack));
 
@@ -265,6 +296,11 @@ class StickerRepository {
   }) => _mutate(() async {
     validateStorageName(extension, label: 'extension');
     if (bytes.isEmpty) throw ArgumentError('Empty sticker media');
+    final hash = sha256.convert(bytes).toString();
+    for (final existing in customPack.stickers) {
+      // Identical content is never stored twice; return the saved sticker.
+      if (existing.contentHash == hash) return existing;
+    }
     final ref = await StickerStorage.saveBytes(
       packId: _customPackId,
       filename: '${newId()}.$extension',
@@ -276,6 +312,7 @@ class StickerRepository {
         kind: kind,
         localPath: ref,
         networkUrl: networkUrl,
+        contentHash: hash,
       );
     } catch (error, stack) {
       try {
@@ -309,8 +346,12 @@ class StickerRepository {
     required StickerKind kind,
     required String localPath,
     String? networkUrl,
+    String? contentHash,
   }) async {
     final pack = customPack;
+    if (pack.stickers.length >= maxCustomStickers) {
+      throw StateError('Favorites are full ($maxCustomStickers)');
+    }
     final sticker = Sticker(
       id: newId(),
       packId: pack.id,
@@ -318,6 +359,7 @@ class StickerRepository {
       kind: kind,
       localPath: localPath,
       networkUrl: networkUrl,
+      contentHash: contentHash,
       createdAt: DateTime.now(),
     );
     await _savePack(
@@ -425,6 +467,188 @@ class StickerRepository {
         await _savePack(pack.copyWith(name: trimmed));
         return getPack(packId)!;
       });
+
+  /// Moves a sticker to the front of its pack (WeChat "pin to top").
+  Future<void> pinSticker(String packId, String stickerId) => _mutate(() async {
+    final pack = getPack(packId);
+    if (pack == null) return;
+    if (pack.source == StickerSource.builtin) {
+      throw ArgumentError('Cannot edit system pack');
+    }
+    final target = pack.stickers.where((s) => s.id == stickerId);
+    if (target.isEmpty) return;
+    await _savePack(
+      pack.copyWith(
+        stickers: [
+          target.first,
+          ...pack.stickers.where((s) => s.id != stickerId),
+        ],
+      ),
+    );
+  });
+
+  /// Moves a sticker from [oldIndex] to [newIndex], where [newIndex] is the
+  /// final position (as in `onReorderItem`).
+  Future<void> reorderStickers(String packId, int oldIndex, int newIndex) =>
+      _mutate(() async {
+        final pack = getPack(packId);
+        if (pack == null) return;
+        if (pack.source == StickerSource.builtin) {
+          throw ArgumentError('Cannot edit system pack');
+        }
+        final list = [...pack.stickers];
+        if (oldIndex < 0 || oldIndex >= list.length) {
+          throw RangeError.index(oldIndex, list, 'oldIndex');
+        }
+        newIndex = newIndex.clamp(0, list.length - 1);
+        list.insert(newIndex, list.removeAt(oldIndex));
+        await _savePack(pack.copyWith(stickers: list));
+      });
+
+  /// Renames one sticker in a user pack.
+  Future<void> renameSticker(String packId, String stickerId, String name) =>
+      _mutate(() async {
+        final pack = getPack(packId);
+        if (pack == null) throw StateError('Pack not found: $packId');
+        if (pack.source == StickerSource.builtin) {
+          throw ArgumentError('Cannot edit system pack');
+        }
+        final trimmed = name.trim();
+        if (trimmed.isEmpty) throw ArgumentError('Name must not be empty');
+        await _savePack(
+          pack.copyWith(
+            stickers: [
+              for (final s in pack.stickers)
+                s.id == stickerId ? s.copyWith(name: trimmed) : s,
+            ],
+          ),
+        );
+      });
+
+  /// Clears the recently-used history.
+  Future<void> clearRecent() =>
+      _mutate(() => _commit({_recentKey: _encodeRecent(const [])}));
+
+  /// Creates an empty user pack and returns it.
+  Future<StickerPack> createPack(String name) => _mutate(() async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) throw ArgumentError('Pack name must not be empty');
+    final pack = StickerPack(
+      id: newId(),
+      name: trimmed,
+      source: StickerSource.imported,
+    );
+    await _savePack(pack);
+    return getPack(pack.id)!;
+  });
+
+  /// Moves a sticker between two user packs, keeping its media.
+  Future<void> moveSticker(
+    String fromPackId,
+    String toPackId,
+    String stickerId,
+  ) => _mutate(() async {
+    if (fromPackId == toPackId) return;
+    final from = getPack(fromPackId);
+    final to = getPack(toPackId);
+    if (from == null || to == null) throw StateError('Pack not found');
+    if (from.source == StickerSource.builtin ||
+        to.source == StickerSource.builtin) {
+      throw ArgumentError('Cannot edit system pack');
+    }
+    final matches = from.stickers.where((s) => s.id == stickerId).toList();
+    if (matches.isEmpty) return;
+    if (to.stickers.length >= maxCustomStickers) {
+      throw StateError('Target pack is full ($maxCustomStickers)');
+    }
+    final moved = matches.first.copyWith(packId: to.id);
+    final rest = from.stickers.where((s) => s.id != stickerId).toList();
+    await _commit({
+      from.id: jsonEncode(
+        from
+            .copyWith(
+              stickers: rest,
+              coverPath: from.coverPath == moved.localPath
+                  ? (rest.isEmpty ? null : rest.first.localPath)
+                  : from.coverPath,
+            )
+            .toJson(),
+      ),
+      to.id: jsonEncode(
+        to
+            .copyWith(
+              stickers: [...to.stickers, moved],
+              coverPath: to.coverPath ?? moved.localPath,
+            )
+            .toJson(),
+      ),
+      _recentKey: _encodeRecent(
+        getRecentStickers().where(
+          (s) => s.packId != fromPackId || s.id != stickerId,
+        ),
+      ),
+    });
+  });
+
+  /// Exports favorites as a portable JSON backup (media is base64-encoded).
+  /// Stickers without local media are skipped.
+  Future<Uint8List> exportFavorites() async {
+    await init();
+    final items = <Map<String, Object?>>[];
+    for (final sticker in customPack.stickers) {
+      final bytes = await readStickerBytes(sticker);
+      if (bytes == null) continue;
+      items.add({
+        'name': sticker.name,
+        'kind': sticker.kind.name,
+        'networkUrl': sticker.networkUrl,
+        'data': base64Encode(bytes),
+      });
+    }
+    return Uint8List.fromList(
+      utf8.encode(jsonEncode({'version': 1, 'stickers': items})),
+    );
+  }
+
+  /// Restores a backup made by [exportFavorites]. Duplicates are skipped and
+  /// import stops when favorites are full. Returns the number added.
+  Future<int> importFavorites(Uint8List data) async {
+    await init();
+    final decoded = jsonDecode(utf8.decode(data));
+    if (decoded is! Map || decoded['stickers'] is! List) {
+      throw const FormatException('Not an emoji_weixin backup');
+    }
+    var added = 0;
+    for (final raw in decoded['stickers'] as List) {
+      if (isFavoritesFull) break;
+      if (raw is! Map || raw['data'] is! String) continue;
+      final bytes = base64Decode(raw['data'] as String);
+      final ext = sniffImageExtension(bytes);
+      if (!isRenderableExtension(ext)) continue;
+      final before = customPack.stickers.length;
+      await saveCustomBytes(
+        name: raw['name'] as String? ?? '',
+        kind: isAnimatedImage(bytes)
+            ? StickerKind.gif
+            : StickerKind.fromName(raw['kind'] as String? ?? ''),
+        bytes: bytes,
+        extension: ext!,
+        networkUrl: raw['networkUrl'] as String?,
+      );
+      if (customPack.stickers.length > before) added++;
+    }
+    return added;
+  }
+
+  /// Removes several stickers from one pack.
+  Future<void> removeStickers(
+    String packId,
+    Iterable<String> stickerIds,
+  ) async {
+    for (final id in stickerIds.toSet()) {
+      await removeSticker(packId, id);
+    }
+  }
 
   /// Generates a UUID for new stickers and files.
   String newId() => _uuid.v4();

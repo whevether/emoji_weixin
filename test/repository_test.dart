@@ -214,6 +214,172 @@ void main() {
     expect(await File(sticker.localPath!).exists(), isFalse);
   });
 
+  test('pinSticker moves a favorite to the front', () async {
+    final a = await repo.addStickerToCustom(
+      name: 'a',
+      kind: StickerKind.gif,
+      localPath: '/external/a.gif',
+    );
+    await repo.addStickerToCustom(
+      name: 'b',
+      kind: StickerKind.gif,
+      localPath: '/external/b.gif',
+    );
+    final c = await repo.addStickerToCustom(
+      name: 'c',
+      kind: StickerKind.gif,
+      localPath: '/external/c.gif',
+    );
+    await repo.pinSticker('custom', c.id);
+    expect(repo.customPack.stickers.map((s) => s.name), ['c', 'a', 'b']);
+    expect(repo.customPack.stickers.map((s) => s.id), contains(a.id));
+  });
+
+  test('reorderStickers moves a favorite to its final index', () async {
+    final a = await repo.addStickerToCustom(
+      name: 'a',
+      kind: StickerKind.gif,
+      localPath: '/external/a.gif',
+    );
+    await repo.addStickerToCustom(
+      name: 'b',
+      kind: StickerKind.gif,
+      localPath: '/external/b.gif',
+    );
+    await repo.addStickerToCustom(
+      name: 'c',
+      kind: StickerKind.gif,
+      localPath: '/external/c.gif',
+    );
+    await repo.reorderStickers('custom', 0, 2);
+    expect(repo.customPack.stickers.map((s) => s.name), ['b', 'c', 'a']);
+    await repo.reorderStickers('custom', 2, 0);
+    expect(repo.customPack.stickers.first.id, a.id);
+  });
+
+  test('identical media content is stored only once', () async {
+    final first = await repo.saveCustomBytes(
+      name: 'a',
+      kind: StickerKind.gif,
+      bytes: Uint8List.fromList([1, 2, 3]),
+      extension: 'gif',
+    );
+    final second = await repo.saveCustomBytes(
+      name: 'b',
+      kind: StickerKind.gif,
+      bytes: Uint8List.fromList([1, 2, 3]),
+      extension: 'png',
+    );
+    expect(second.id, first.id);
+    expect(first.contentHash, isNotNull);
+    expect(repo.customPack.stickers, hasLength(1));
+    await repo.saveCustomBytes(
+      name: 'c',
+      kind: StickerKind.gif,
+      bytes: Uint8List.fromList([4, 5, 6]),
+      extension: 'gif',
+    );
+    expect(repo.customPack.stickers, hasLength(2));
+  });
+
+  test(
+    'readStickerBytes returns stored media; network-only gives null',
+    () async {
+      final saved = await repo.saveCustomBytes(
+        name: 'a',
+        kind: StickerKind.gif,
+        bytes: Uint8List.fromList([9, 8, 7]),
+        extension: 'gif',
+      );
+      expect(await repo.readStickerBytes(saved), [9, 8, 7]);
+      expect(repo.isFavoritesFull, isFalse);
+      const remote = Sticker(
+        id: 'r',
+        packId: 'klipy',
+        name: 'r',
+        kind: StickerKind.gif,
+        networkUrl: 'https://example.com/a.gif',
+      );
+      expect(await repo.readStickerBytes(remote), isNull);
+    },
+  );
+
+  test('rename, move, clear recent and backup round trip', () async {
+    final png = Uint8List.fromList([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4, //
+    ]);
+    final saved = await repo.saveCustomBytes(
+      name: 'a',
+      kind: StickerKind.staticImage,
+      bytes: png,
+      extension: 'png',
+    );
+    await repo.renameSticker('custom', saved.id, ' b ');
+    expect(repo.customPack.stickers.single.name, 'b');
+
+    final pack = await repo.createPack('Mine');
+    await repo.moveSticker('custom', pack.id, saved.id);
+    expect(repo.customPack.stickers, isEmpty);
+    expect(repo.getPack(pack.id)!.stickers.single.packId, pack.id);
+    await repo.moveSticker(pack.id, 'custom', saved.id);
+
+    final backup = await repo.exportFavorites();
+    await repo.removeSticker('custom', saved.id);
+    expect(await repo.importFavorites(backup), 1);
+    expect(repo.customPack.stickers.single.name, 'b');
+    expect(await repo.importFavorites(backup), 0);
+
+    await repo.recordRecent(repo.customPack.stickers.single);
+    await repo.clearRecent();
+    expect(repo.getRecentStickers(), isEmpty);
+  });
+
+  test('removeStickers deletes several favorites at once', () async {
+    final a = await repo.addStickerToCustom(
+      name: 'a',
+      kind: StickerKind.gif,
+      localPath: '/external/a.gif',
+    );
+    final b = await repo.addStickerToCustom(
+      name: 'b',
+      kind: StickerKind.gif,
+      localPath: '/external/b.gif',
+    );
+    await repo.addStickerToCustom(
+      name: 'c',
+      kind: StickerKind.gif,
+      localPath: '/external/c.gif',
+    );
+    await repo.removeStickers('custom', [a.id, b.id]);
+    expect(repo.customPack.stickers.map((s) => s.name), ['c']);
+  });
+
+  test('favorites are capped at maxCustomStickers', () async {
+    await repo.init();
+    await repo.savePack(
+      repo.customPack.copyWith(
+        stickers: List.generate(
+          StickerRepository.maxCustomStickers,
+          (i) => Sticker(
+            id: 's$i',
+            packId: 'custom',
+            name: '$i',
+            kind: StickerKind.gif,
+            localPath: '/external/$i.gif',
+          ),
+        ),
+      ),
+    );
+    await expectLater(
+      repo.addStickerToCustom(
+        name: 'x',
+        kind: StickerKind.gif,
+        localPath: '/external/x.gif',
+      ),
+      throwsStateError,
+    );
+  });
+
   test('multi-record failure rolls back metadata as well as cache', () async {
     final sticker = await repo.addStickerToCustom(
       name: 'keep',
